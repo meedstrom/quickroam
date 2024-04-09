@@ -29,7 +29,7 @@ Install [[https://github.com/BurntSushi/ripgrep][ripgrep]] on your computer.  Th
   :straight (quickroam :type git :host github :repo "meedstrom/quickroam"))
 
 (add-hook 'after-save-hook #'quickroam-aftersave)
-(global-set-key (kbd "<f2> f") #'quickroam-find) ;; or whatever key you 
+(global-set-key (kbd "<f2> f") #'quickroam-find) ;; or whatever key you use
 (global-set-key (kbd "<f2> i") #'quickroam-insert)
 #+end_src
 
@@ -38,6 +38,4 @@ Install [[https://github.com/BurntSushi/ripgrep][ripgrep]] on your computer.  Th
 
 This package could be extended to collect all the data needed to populate the SQL database, so we can stop using =org-roam-db-sync= altogether.
 
-We "just" have to design a better regexp.  As it is, it just grabs titles and IDs, which satisfies the current purpose.
-
-Replacing =org-roam-db-sync= may impose some limitations on org-roam's hackability, but perhaps that's worth it.
+We "just" have to design a better regexp.  As it is, it just grabs titles and IDs, which satisfies the current purpose.  Totally replacing =org-roam-db-sync= may impose some limitations on org-roam's hackability, but perhaps that's worth it.
