@@ -1,17 +1,15 @@
 * Quickroam
 ** Is your org-roam slow?
 
-If you're like me, you think org-roam has the right idea, but it's not reliable or fast enough for day-to-day work.
+If you're like me, you think [[https://github.com/org-roam/org-roam][org-roam]] has the right idea, but it's not reliable or fast enough for day-to-day work.
 
 1. The end-user commands take 5 seconds to get the minibuffer ready.
    - A [[https://edstrom.dev/czdfr/org-roam-fixes#jxbqt][workaround by memoizing]] works well most of the time, but if I create a new node and immediately want to insert it elsewhere, I have to wait for an idle timer to update the memoization.
 
-2. I have some Org files so large that =org-roam-db-autosync-mode= spends 10 seconds scanning the file on save.
+2. Very large Org files take 10 seconds to save with =org-roam-db-autosync-mode=.
    - I can turn the mode off, but then I need to manually run =M-x org-roam-db-sync= every now and then!  Not great when I'm in the zone and writing.
 
-As best I can tell by reading the source code, problems #1 and #2 are totally separate.  Problem #1 /should/ be fixable, but #2 arises from the fact that org-roam is very generalized -- for example, it lets you plug in user-defined functions to exclude or include a node.  That hacks the good hack, but it means that org-roam is forced to load org-mode and rely on its navigation functions in every file it scans, incurring a big penalty to performance.
-
-Reliance on org-mode also leaves us fragile to bugs in the org element parser.
+As best I can tell by reading the source code, problems #1 and #2 are totally separate.  Problem #1 /should/ be fixable, but #2 arises from the fact that org-roam is very generalized -- for example, it lets you plug in user-defined functions to exclude or include a node.  That hacks the good hack, but it means that org-roam is forced to use Org functions to "properly" parse every file it scans, incurring all the penalties of doing so.
 
 ** Fix
 
@@ -22,9 +20,19 @@ This package fixes both of above problems via alternatives to common commands:
 
 They don't look up the org-roam DB at all, and just rely on ripgrep instead.
 
-You'll need a small init setting:
+** Setup
 
-: (add-hook 'after-save-hook #'quickroam-aftersave)
+Install [[https://github.com/BurntSushi/ripgrep][ripgrep]] on your computer.  Then add to Emacs initfiles something like (assuming you install packages with [[https://github.com/radian-software/straight.el][straight.el]]):
+
+#+begin_src elisp
+(use-package quickroam
+  :straight (quickroam :type git :host github :repo "meedstrom/quickroam"))
+
+(add-hook 'after-save-hook #'quickroam-aftersave)
+(global-set-key (kbd "<f2> f") #'quickroam-find) ;; or whatever key you 
+(global-set-key (kbd "<f2> i") #'quickroam-insert)
+#+end_src
+
 
 ** Future work
 

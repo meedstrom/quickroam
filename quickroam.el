@@ -210,7 +210,6 @@ hand, you get no shell magic such as globs or envvars."
   (interactive)
   (when (hash-table-empty-p quickroam-cache)
     (quickroam-reset))
-  ;; unwind-protect
   ;; Design borrowed from `org-roam-node-insert'
   (atomic-change-group
     (let* (region-text
@@ -249,8 +248,6 @@ hand, you get no shell magic such as globs or envvars."
                  (when (and beg end)
                    (list :region (cons beg end)))
                  (list :link-description description
-                       :finalize 'insert-link))))))
-  ;; (deactivate-mark)
-  )
+                       :finalize 'insert-link)))))))
 
 (provide 'quickroam)
