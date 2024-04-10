@@ -42,4 +42,4 @@ We "just" have to design a better regexp.  As it is, it just grabs titles and ID
 
 ** Thanks
 
-Inspired by conversations with [[https://github.com/rtrppl/orgrr][orgrr]]'s maker :)
+Inspired by conversations on Mastodon with the [[https://github.com/rtrppl/orgrr][orgrr]] author :)

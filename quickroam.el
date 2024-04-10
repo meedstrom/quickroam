@@ -17,7 +17,7 @@
 
 ;; Author: Martin Edström <meedstrom91@gmail.com>
 ;; Created: 2024-04-09
-;; Version: 0.5
+;; Version: 0.5.1-pre
 ;; Keywords: outlines, hypermedia
 ;; Package-Requires: ((emacs "29.1") (org-roam "2.2.2") (pcre2el "1.12"))
 ;; URL: https://github.com/meedstrom/quickroam
@@ -56,7 +56,7 @@ these paths.
 
 Read about syntax in the Ripgrep guide:
 
-  https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md#manual-filtering-globs
+  https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md
 
 These arguments are NOT passed directly to a shell, so there's no
 need to shell-escape characters.  If you have a filename with a
@@ -83,10 +83,10 @@ hand, you get no shell magic such as globs or envvars."
   "Table of org-roam node titles with associated data in plists.
 To peek on the contents, try \\[quickroam-debug-print-random-nodes].
 
-The db key is not the org-id as you might expect, because keying
-on title allows `completing-read' to use it as-is, and the
-upstream `org-roam-node-find' actually expected titles to be
-unique too(!).")
+We don't use the org-id for the database key as you might expect,
+because keying on title allows `completing-read' to use the
+variable as-is, and the upstream `org-roam-node-find' actually
+expected titles to be unique too(!).")
 
 (defun quickroam-debug-print-random-nodes ()
   "For debugging: peek on some rows of `quickroam-cache'."
@@ -161,8 +161,10 @@ unique too(!).")
                           :line-number (string-to-number (cadr file:line)))
                  quickroam-cache)))))
 
+
 (defun quickroam-reset (&optional interactive)
-  "Wipe and rebuild the cache."
+  "Wipe and rebuild the cache.
+INTERACTIVE is set internally."
   (interactive "p")
   (unless (executable-find "rg")
     (error "Install ripgrep to use quickroam"))
@@ -175,7 +177,8 @@ unique too(!).")
              (float-time (time-since then)))))
 
 (defun quickroam-reset-soon (&rest _)
-  "Call `quickroam-reset' in 1 sec if now inside an org-roam file."
+  "Call `quickroam-reset' in 1 sec if inside an org-roam file now.
+Simplistic, but works 999/1000 times and doesn't need 1000."
   (when (org-roam-file-p)
     (run-with-timer 1 nil #'quickroam-reset)))
 
@@ -259,7 +262,9 @@ immediately."
 
 ;; DEPRECATED 2024-04-10
 (defun quickroam-aftersave ()
-  (message "`quickroam-aftersave' deprecated, turn on `quickroam-mode' instead"))
+  "Was some after-save logic."
+  (remove-hook 'after-save-hook 'quickroam-aftersave)
+  (error "`quickroam-aftersave' deprecated, turn on `quickroam-mode' instead"))
 
 (provide 'quickroam)
 ;;; quickroam.el ends here
