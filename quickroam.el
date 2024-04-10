@@ -47,8 +47,7 @@
 
 (defcustom quickroam-extra-rg-args
   '("--glob" "**/*.org"
-    "--glob" "!logseq/**"
-    "--glob" "!*archive*")
+    "--glob" "!logseq/**")
   "Extra arguments to ripgrep---useful for filtering paths.
 These are NOT passed directly to the shell, so there's no need to
 shell-escape characters.  If you have a filename with a space,
