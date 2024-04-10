@@ -17,7 +17,7 @@
 
 ;; Author: Martin Edström <meedstrom91@gmail.com>
 ;; Created: 2024-04-09
-;; Version: 0.6-pre
+;; Version: 0.6
 ;; Keywords: outlines, hypermedia
 ;; Package-Requires: ((emacs "29.1") (org-roam "2.2.2") (pcre2el "1.12"))
 ;; URL: https://github.com/meedstrom/quickroam
@@ -68,16 +68,12 @@ one string."
 
 ;;; Plumbing
 
-(defun quickroam--program-output (program &rest args)
-  "Like `shell-command-to-string', but skip the shell intermediary.
-
-Arguments PROGRAM and ARGS as in `call-process'.  Each argument
-is a string usually without spaces, and needs not
-backslash-escape characters such as asterisks.  On the other
-hand, you get no shell magic such as globs or envvars."
-  (with-temp-buffer
-    (apply #'call-process program nil t nil args)
-    (buffer-string)))
+(defun quickroam-debug-print-random-nodes ()
+  "For debugging: peek on some rows of `quickroam-cache'."
+  (interactive)
+  (let ((rows (hash-table-values quickroam-cache)))
+    (dotimes (_ 5)
+      (print (nth (random (length rows)) rows)))))
 
 (defvar quickroam-cache (make-hash-table :size 4000 :test #'equal)
   "Table of org-roam node titles with associated data in plists.
@@ -88,12 +84,16 @@ because keying on title allows `completing-read' to use the
 variable as-is, and the upstream `org-roam-node-find' actually
 expected titles to be unique too(!).")
 
-(defun quickroam-debug-print-random-nodes ()
-  "For debugging: peek on some rows of `quickroam-cache'."
-  (interactive)
-  (let ((rows (hash-table-values quickroam-cache)))
-    (dotimes (_ 5)
-      (print (nth (random (length rows)) rows)))))
+(defun quickroam--program-output (program &rest args)
+  "Like `shell-command-to-string', but skip the shell intermediary.
+
+Arguments PROGRAM and ARGS as in `call-process'.  Each argument
+is a string usually without spaces, and needs not
+backslash-escape characters such as asterisks.  On the other
+hand, you get no shell magic such as globs or envvars."
+  (with-temp-buffer
+    (apply #'call-process program nil t nil args)
+    (buffer-string)))
 
 (defconst quickroam-file-level-re
   (rxt-elisp-to-pcre
