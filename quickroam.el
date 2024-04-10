@@ -102,7 +102,19 @@ expected titles to be unique too(!).")
        "\n#+title:" (+ " ") (group (+ nonl))))
   "Regexp to match file-level nodes.")
 
-(defun quickroam-scan-file-level ()
+(defconst quickroam-subtree-re
+  (rxt-elisp-to-pcre
+   (rx bol (+? "*") (+ space) (group (+? nonl))   ; * heading
+       (? (+ space) ":" (+ nonl) ":") (* space)   ; (* heading...) :tags:
+       (? "\n" (*? space) (not "*") (* nonl))     ; CLOSED/SCHEDULED
+       "\n" (*? space) ":PROPERTIES:"
+       (*? "\n" (* nonl))
+       "\n" (*? space) ":ID:" (+ space) (group (+ nonl))
+       (*? "\n" (* nonl))
+       "\n" (*? space) ":END:"))
+  "Regexp to match subtree nodes.")
+
+(defun quickroam-scan-file-level-nodes ()
   "Scan `org-roam-directory' for file-level nodes."
   (let* ((default-directory org-roam-directory)
          (rg-result (apply #'quickroam--program-output "rg"
@@ -124,22 +136,10 @@ expected titles to be unique too(!).")
                           :line-number (string-to-number (cadr file:line)))
                  quickroam-cache)))))
 
-(defconst quickroam-subtree-re
-  (rxt-elisp-to-pcre
-   (rx bol (+? "*") (+ space) (group (+? nonl))   ; * heading
-       (? (+ space) ":" (+ nonl) ":") (* space)   ; (* heading...) :tags:
-       (? "\n" (*? space) (not "*") (* nonl))     ; CLOSED/SCHEDULED
-       "\n" (*? space) ":PROPERTIES:"
-       (*? "\n" (* nonl))
-       "\n" (*? space) ":ID:" (+ space) (group (+ nonl))
-       (*? "\n" (* nonl))
-       "\n" (*? space) ":END:"))
-  "Regexp to match subtree nodes.")
-
 ;; For now, this function looks almost exactly identical to
-;; `quickroam-scan-file-level', but they are expected to diverge when I extend
-;; the package as described in the README.
-(defun quickroam-scan-subtrees ()
+;; `quickroam-scan-file-level-nodes', but they may diverge when I
+;; extend the package as described in the README.
+(defun quickroam-scan-subtree-nodes ()
   "Scan `org-roam-directory' for subtree nodes."
   (let* ((default-directory org-roam-directory)
          (rg-result (apply #'quickroam--program-output "rg"
@@ -161,7 +161,6 @@ expected titles to be unique too(!).")
                           :line-number (string-to-number (cadr file:line)))
                  quickroam-cache)))))
 
-
 (defun quickroam-reset (&optional interactive)
   "Wipe and rebuild the cache.
 INTERACTIVE is set internally."
@@ -170,8 +169,8 @@ INTERACTIVE is set internally."
     (error "Install ripgrep to use quickroam"))
   (let ((then (current-time)))
     (clrhash quickroam-cache)
-    (quickroam-scan-file-level)
-    (quickroam-scan-subtrees)
+    (quickroam-scan-file-level-nodes)
+    (quickroam-scan-subtree-nodes)
     (funcall (if interactive #'message #'format)
              "Rebuilt quickroam cache in %.3f seconds"
              (float-time (time-since then)))))
@@ -193,13 +192,13 @@ Simplistic, but works 999/1000 times and doesn't need 1000."
   (when (hash-table-empty-p quickroam-cache)
     (quickroam-reset))
   (let* ((title (completing-read "Node: " quickroam-cache nil nil nil 'org-roam-node-history))
-         (qr-node (gethash title quickroam-cache)))
-    (if qr-node
+         (node (gethash title quickroam-cache)))
+    (if node
         (progn
           (find-file
-           (expand-file-name (plist-get qr-node :file) org-roam-directory))
+           (expand-file-name (plist-get node :file) org-roam-directory))
           (goto-line
-           (plist-get qr-node :line-number)))
+           (plist-get node :line-number)))
       (org-roam-capture-
        :node (org-roam-node-create :title title)
        :props '(:finalize find-file)))))
@@ -220,13 +219,21 @@ Simplistic, but works 999/1000 times and doesn't need 1000."
                           (org-link-display-format
                            (buffer-substring-no-properties beg end))))
            (title (completing-read "Node: " quickroam-cache nil nil nil 'org-roam-node-history))
-           (qr-node (gethash title quickroam-cache))
-           (id (plist-get qr-node :id))
+           (node (gethash title quickroam-cache))
+           (id (plist-get node :id))
            (desc (or region-text title)))
-      (if qr-node
+      (if node
           (progn
-            (when region-text
-              (delete-region beg end))
+            (if region-text
+                (delete-region beg end)
+              ;; Try to strip the todo keyword, whatever the todo syntax in that
+              ;; file.  Fail silently because it matters not much.
+              (ignore-errors
+                (org-roam-with-file
+                    (expand-file-name (plist-get node :file) org-roam-directory)
+                    nil
+                  (goto-line (plist-get node :line-number))
+                  (setq desc (nth 4 (org-heading-components))))))
             (insert (org-link-make-string (concat "id:" id) desc))
             (run-hook-with-args 'org-roam-post-node-insert-hook id desc))
         (org-roam-capture-
@@ -246,9 +253,9 @@ Simplistic, but works 999/1000 times and doesn't need 1000."
 
 ;;;###autoload
 (define-minor-mode quickroam-mode
-  "Setup on-save hooks etc to keep the cache updated.
-This permits `quickroam-find' and `quickroam-insert' to know about new files
-immediately."
+  "Prep save-hooks etc to update the cache.
+Updating the cache lets `quickroam-find' and `quickroam-insert'
+know about new files immediately."
   :global t
   (require 'org-roam)
   (if quickroam-mode
