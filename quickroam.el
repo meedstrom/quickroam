@@ -81,8 +81,13 @@ hand, you get no shell magic such as globs or envvars."
 
 (defvar quickroam-cache
   (make-hash-table :size 4000 :test #'equal)
-  "Table of org-roam IDs with associated data in plists.
-To peek on the contents, try \\[quickroam--print-random-rows].")
+  "Table of org-roam node titles with associated data in plists.
+To peek on the contents, try \\[quickroam--print-random-rows].
+
+The db key is not the org-id as you might expect, because keying
+on title allows `completing-read' to use it as-is, and the
+upstream `org-roam-node-find' actually expected titles to be
+unique too(!).")
 
 (defconst quickroam-file-level-re
   (rxt-elisp-to-pcre
@@ -104,16 +109,15 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
                           ,quickroam-file-level-re))))
     (dolist (line (string-split result "\n" t))
       (let* ((groups (string-split line "\t"))
-             (line:num (string-split (pop groups) ":"))
+             (file:line (string-split (pop groups) ":"))
              ($1 (pop groups))
              ($2 (pop groups)))
-        (puthash $1 (list :title $2
+        (puthash $2 (list :title $2
                           :id $1
-                          :file (car line:num)
-                          :line-number (string-to-number (cadr line:num)))
+                          :file (car file:line)
+                          :line-number (string-to-number (cadr file:line)))
                  quickroam-cache)))))
 
-;; Whoa boy so hairy!  Glad for `rx'.
 (defconst quickroam-subtree-re
   (rxt-elisp-to-pcre
    (rx bol (+? "*") (+ space) (group (+? nonl))   ; * heading
@@ -142,13 +146,13 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
                           ,quickroam-subtree-re))))
     (dolist (line (string-split result "\n" t))
       (let* ((groups (string-split line "\t"))
-             (line:num (string-split (pop groups) ":"))
+             (file:line (string-split (pop groups) ":"))
              ($1 (pop groups))
              ($2 (pop groups)))
-        (puthash $2 (list :title $1
+        (puthash $1 (list :title $1
                           :id $2
-                          :file (car line:num)
-                          :line-number (string-to-number (cadr line:num)))
+                          :file (car file:line)
+                          :line-number (string-to-number (cadr file:line)))
                  quickroam-cache)))))
 
 (defun quickroam--print-random-rows ()
@@ -168,15 +172,9 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
     (clrhash quickroam-cache)
     (quickroam-scan-subtrees)
     (quickroam-scan-file-level)
-    (setq quickroam--coll
-          (cl-loop for qr-node being the hash-values of quickroam-cache
-                   collect (cons (plist-get qr-node :title) qr-node)))
     (funcall (if interactive #'message #'format)
              "Rebuilt quickroam cache in %.3f seconds"
              (float-time (time-since then)))))
-
-(defvar quickroam--coll nil
-  "Alist of (TITLE . PLIST) for `completing-read' etc.")
 
 (defun quickroam-reset-soon (&rest _)
   "Call `quickroam-reset' after 1 s if in an org-roam file now."
@@ -193,8 +191,8 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
   (require 'org-roam)
   (when (hash-table-empty-p quickroam-cache)
     (quickroam-reset))
-  (let* ((title (completing-read "Node: " quickroam--coll nil nil nil 'org-roam-node-history))
-         (qr-node (cdr (assoc title quickroam--coll))))
+  (let* ((title (completing-read "Node: " quickroam-cache nil nil nil 'org-roam-node-history))
+         (qr-node (gethash title quickroam-cache)))
     (if qr-node
         (progn
           (find-file
@@ -221,8 +219,8 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
                           (setq end (region-end))
                           (org-link-display-format
                            (buffer-substring-no-properties beg end))))
-           (title (completing-read "Node: " quickroam--coll nil nil nil 'org-roam-node-history))
-           (qr-node (cdr (assoc title quickroam--coll)))
+           (title (completing-read "Node: " quickroam-cache nil nil nil 'org-roam-node-history))
+           (qr-node (gethash title quickroam-cache))
            (id (plist-get qr-node :id))
            (description (or region-text title)))
       (if qr-node
