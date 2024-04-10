@@ -1,25 +1,28 @@
-;; Fast versions of org-roam commands -*- lexical-binding: t; -*-
+;;; quickroam.el --- Fast versions of org-roam commands -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2024 Martin Edström
-
-;; Author: Martin Edström <meedstrom91@gmail.com>
-;; URL: https://github.com/meedstrom/quickroam
-;; Keywords: outlines, hypermedia
-;; Version: 0.1
-;; Package-Requires: ((emacs "29.1") (org-roam "2.2.2") (pcre2el "1.12"))
-
+;;
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
-
+;;
 ;; This program is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
-
+;;
 ;; For a full copy of the GNU General Public License
 ;; see <http://www.gnu.org/licenses/>.
+
+;; Author: Martin Edström <meedstrom91@gmail.com>
+;; Created: 2024-04-09
+;; Version: 0.1
+;; Keywords: outlines, hypermedia
+;; Package-Requires: ((emacs "29.1") (org-roam "2.2.2") (pcre2el "1.12"))
+;; URL: https://github.com/meedstrom/quickroam
+
+;; This file is not part of GNU Emacs.
 
 ;;; Commentary:
 
@@ -251,3 +254,4 @@ hand, you get no shell magic such as globs or envvars."
                        :finalize 'insert-link)))))))
 
 (provide 'quickroam)
+;;; quickroam.el ends here
