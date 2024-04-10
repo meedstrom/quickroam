@@ -29,7 +29,7 @@ Install [[https://github.com/BurntSushi/ripgrep][ripgrep]] on your computer.  Th
   :straight (quickroam :type git :host github :repo "meedstrom/quickroam")
   :defer t)
 
-(add-hook 'org-mode-hook #'quickroam-mode)
+(add-hook 'org-mode-hook #'quickroam-enable)
 (global-set-key (kbd "<f2> f") #'quickroam-find) ;; or whatever key you use
 (global-set-key (kbd "<f2> i") #'quickroam-insert)
 #+end_src
