@@ -42,18 +42,20 @@
 
 ;;; Code:
 
+(require 'subr-x)
 (require 'org-roam)
 (require 'pcre2el)
 
 (defcustom quickroam-extra-rg-args
   '("--glob" "**/*.org"
-    "--glob" "!**/logseq/**"
-    "--glob" "!**/*.sync-conflict-*")
+    "--glob" "!**/logseq/**"  ;; ignore Logseq's backup files
+    "--glob" "!**/*.sync-conflict-*") ;; ignore Syncthing dups
   "Extra arguments to ripgrep - useful for filtering paths.
-If you are on an exotic system such as Windows, you probably have
-to edit these paths.
 
-Read about syntax at:
+On an exotic system such as Windows, you probably have to edit
+these paths.
+
+Read about syntax in the Ripgrep guide:
 
   https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md#manual-filtering-globs
 
@@ -98,28 +100,25 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
                           "--ignore-case"
                           "--line-number"
                           "--only-matching"
-                          "--replace" "$1	$2"
+                          "--replace" "	$1	$2"
                           ,@quickroam-extra-rg-args
                           ,quickroam-file-level-re))))
     (dolist (line (string-split result "\n" t))
       (let* ((groups (string-split line "\t"))
+             (line:num (string-split (pop groups) ":"))
              ($1 (pop groups))
-             ($2 (pop groups))
-             (blob (string-split $1 ":"))
-             (file (pop blob))
-             (line-number (string-to-number (pop blob)))
-             (id (string-join blob))) ;; Maybe some ppl have colons inside ID
-        (puthash id (list :title $2
-                          :id id
-                          :file file
-                          :line-number line-number)
+             ($2 (pop groups)))
+        (puthash $1 (list :title $2
+                          :id $1
+                          :file (car line:num)
+                          :line-number (string-to-number (cadr line:num)))
                  quickroam-cache)))))
 
 ;; Whoa boy so hairy!  Glad for `rx'.
 (defconst quickroam-subtree-re
   (rxt-elisp-to-pcre
-   (rx bol (+? "*") (+ space) (group (+? nonl))
-       (? (+ space) ":" (+ nonl) ":") (* space)   ; :tags:
+   (rx bol (+? "*") (+ space) (group (+? nonl))   ; * heading
+       (? (+ space) ":" (+ nonl) ":") (* space)   ; (* heading...) :tags:
        (? "\n" (*? space) (not "*") (* nonl))     ; CLOSED/SCHEDULED
        "\n" (*? space) ":PROPERTIES:"
        (*? "\n" (* nonl))
@@ -128,6 +127,9 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
        "\n" (*? space) ":END:"))
   "Regexp to match subtree nodes.")
 
+;; For now, this function looks almost exactly identical to
+;; `quickroam-scan-file-level', but they are expected to diverge when I extend
+;; the package as described in the README.
 (defun quickroam-scan-subtrees ()
   "Scan `org-roam-directory' for subtree nodes."
   (let* ((default-directory org-roam-directory)
@@ -136,21 +138,18 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
                           "--ignore-case"
                           "--line-number"
                           "--only-matching"
-                          "--replace" "$1	$2"
+                          "--replace" "	$1	$2"
                           ,@quickroam-extra-rg-args
                           ,quickroam-subtree-re))))
     (dolist (line (string-split result "\n" t))
       (let* ((groups (string-split line "\t"))
+             (line:num (string-split (pop groups) ":"))
              ($1 (pop groups))
-             ($2 (pop groups))
-             (blob (string-split $1 ":"))
-             (file (pop blob))
-             (line-number (string-to-number (pop blob)))
-             (title (string-join blob))) ;; Title may contain colons
-        (puthash $2 (list :title title
+             ($2 (pop groups)))
+        (puthash $2 (list :title $1
                           :id $2
-                          :file file
-                          :line-number line-number)
+                          :file (car line:num)
+                          :line-number (string-to-number (cadr line:num)))
                  quickroam-cache)))))
 
 (defun quickroam--print-random-rows ()
@@ -176,7 +175,7 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
              (float-time (time-since then)))))
 
 (defun quickroam-reset-soon (&rest _)
-  "Call `quickroam-reset' after 1 second if inside an org-roam file now."
+  "Call `quickroam-reset' after 1 s if in an org-roam file now."
   (when (org-roam-file-p)
     (run-with-timer 1 nil #'quickroam-reset)))
 
@@ -266,9 +265,9 @@ immediately."
         (add-hook 'after-save-hook #'quickroam-reset-soon)
         (advice-add #'delete-file :before #'quickroam-reset-soon)
         (advice-add #'rename-file :before #'quickroam-reset-soon))
-    (advice-remove #'rename-file #'quickroam-reset-soon)
+    (remove-hook 'after-save-hook #'quickroam-reset-soon)
     (advice-remove #'delete-file #'quickroam-reset-soon)
-    (remove-hook 'after-save-hook #'quickroam-reset-soon)))
+    (advice-remove #'rename-file #'quickroam-reset-soon)))
 
 ;; DEPRECATED 2024-04-10
 (defun quickroam-aftersave ()
