@@ -49,7 +49,7 @@
   '("--glob" "**/*.org"
     "--glob" "!logseq/**"
     "--glob" "!*.sync-conflict-*")
-  "Extra arguments to ripgrep---useful for filtering paths.
+  "Extra arguments to ripgrep - useful for filtering paths.
 These are NOT passed directly to the shell, so there's no need to
 shell-escape characters.  If you have a filename with a space,
 it's fine.  But do not pass several arguments in one string."
@@ -70,18 +70,10 @@ hand, you get no shell magic such as globs or envvars."
     (apply #'call-process program nil t nil args)
     (buffer-string)))
 
-;; NOTE: Here's the snippet to test as shell command instead
-(quote
- (let ((default-directory org-roam-directory))
-  (shell-command-to-string
-   (concat "rg -Uin"
-           " " (mapconcat #'shell-quote-argument quickroam-extra-rg-args " ")
-           " " (shell-quote-argument quickroam-file-level-re)
-           " -or '$1 $2'"))))
-
 (defvar quickroam-cache
   (make-hash-table :size 4000 :test #'equal)
-  "Table of org-roam IDs with associated data in plists.")
+  "Table of org-roam IDs with associated data in plists.
+To peek on the contents, try \\[quickroam--print-random-rows].")
 
 (defconst quickroam-file-level-re
   (rxt-elisp-to-pcre
@@ -99,9 +91,6 @@ hand, you get no shell magic such as globs or envvars."
                           "--line-number"
                           "--only-matching"
                           "--replace" "$1	$2"
-                          ;; In case we make the regex much more complex,
-                          ;; this MAY save performance
-                          ;; "--pre" "head"
                           ,@quickroam-extra-rg-args
                           ,quickroam-file-level-re))))
     (dolist (line (string-split result "\n" t))
@@ -118,12 +107,12 @@ hand, you get no shell magic such as globs or envvars."
                           :line-number line-number)
                  quickroam-cache)))))
 
-;; Whoa boy so hairy
+;; Whoa boy so hairy!  Glad for `rx'.
 (defconst quickroam-subtree-re
   (rxt-elisp-to-pcre
    (rx bol (+? "*") (+ space) (group (+? nonl))
-       (? (+ space) ":" (+ nonl) ":") (* space)       ; :tags:
-       (? "\n" (*? space) (not "*") (* nonl))  ; CLOSED/SCHEDULED/...
+       (? (+ space) ":" (+ nonl) ":") (* space)   ; :tags:
+       (? "\n" (*? space) (not "*") (* nonl))     ; CLOSED/SCHEDULED
        "\n" (*? space) ":PROPERTIES:"
        (*? "\n" (* nonl))
        "\n" (*? space) ":ID:" (+ space) (group (+ nonl))
@@ -134,15 +123,15 @@ hand, you get no shell magic such as globs or envvars."
 (defun quickroam-scan-subtrees ()
   "Scan `org-roam-directory' for subtree nodes."
   (let* ((default-directory org-roam-directory)
-         (results (apply #'quickroam--program-output "rg"
-                         `("--multiline"
-                           "--ignore-case"
-                           "--line-number"
-                           "--only-matching"
-                           "--replace" "$1	$2"
-                           ,@quickroam-extra-rg-args
-                           ,quickroam-subtree-re))))
-    (dolist (line (string-split results "\n" t))
+         (result (apply #'quickroam--program-output "rg"
+                        `("--multiline"
+                          "--ignore-case"
+                          "--line-number"
+                          "--only-matching"
+                          "--replace" "$1	$2"
+                          ,@quickroam-extra-rg-args
+                          ,quickroam-subtree-re))))
+    (dolist (line (string-split result "\n" t))
       (let* ((groups (string-split line "\t"))
              ($1 (pop groups))
              ($2 (pop groups))
