@@ -275,11 +275,5 @@ know about new files immediately."
     (advice-remove #'delete-file #'quickroam-reset-soon)
     (advice-remove #'rename-file #'quickroam-reset-soon)))
 
-;; DEPRECATED 2024-04-10
-(defun quickroam-aftersave ()
-  "Was some after-save logic."
-  (remove-hook 'after-save-hook 'quickroam-aftersave)
-  (error "`quickroam-aftersave' deprecated, turn on `quickroam-mode' instead"))
-
 (provide 'quickroam)
 ;;; quickroam.el ends here
