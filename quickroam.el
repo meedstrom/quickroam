@@ -43,7 +43,6 @@
 ;;; Code:
 
 (require 'subr-x)
-(require 'org-roam)
 (require 'pcre2el)
 
 (defcustom quickroam-extra-rg-args
@@ -176,6 +175,7 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
 
 (defun quickroam-reset-soon (&rest _)
   "Call `quickroam-reset' after 1 s if in an org-roam file now."
+  (require 'org-roam)
   (when (org-roam-file-p)
     (run-with-timer 1 nil #'quickroam-reset)))
 
@@ -186,6 +186,7 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
 (defun quickroam-find ()
   "Fast substitute for `org-roam-node-find'."
   (interactive)
+  (require 'org-roam)
   (when (hash-table-empty-p quickroam-cache)
     (quickroam-reset))
   ;; Based on design from `org-roam-node-find'
@@ -208,6 +209,7 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
 (defun quickroam-insert ()
   "Fast substitute for `org-roam-node-insert'."
   (interactive)
+  (require 'org-roam)
   (when (hash-table-empty-p quickroam-cache)
     (quickroam-reset))
   ;; Based on design from `org-roam-node-insert'
