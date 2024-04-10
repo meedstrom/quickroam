@@ -17,7 +17,7 @@
 
 ;; Author: Martin Edström <meedstrom91@gmail.com>
 ;; Created: 2024-04-09
-;; Version: 0.3
+;; Version: 0.4
 ;; Keywords: outlines, hypermedia
 ;; Package-Requires: ((emacs "29.1") (org-roam "2.2.2") (pcre2el "1.12"))
 ;; URL: https://github.com/meedstrom/quickroam
@@ -36,7 +36,7 @@
 ;;
 ;; Setup:
 ;;
-;;     (add-hook 'org-mode-hook #'quickroam-mode)
+;;     (add-hook 'org-mode-hook #'quickroam-enable)
 ;;
 ;; Requires ripgrep.
 
@@ -167,7 +167,7 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
              "Rebuilt quickroam cache in %.3f seconds"
              (float-time (time-since then)))))
 
-(defun quickroam-reset-soon ()
+(defun quickroam-reset-soon (&rest _)
   "Call `quickroam-reset' after 1 second if inside an org-roam file now."
   (when (org-roam-file-p)
     (run-with-timer 1 nil #'quickroam-reset)))
@@ -241,10 +241,17 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
                        :finalize 'insert-link)))))))
 
 ;;;###autoload
+(defun quickroam-enable ()
+  "Designed for `org-mode-hook'."
+  (quickroam-mode)
+  (remove-hook 'org-mode-hook #'quickroam-enable))
+
+;;;###autoload
 (define-minor-mode quickroam-mode
   "Setup on-save hooks etc to keep the cache updated.
 This permits `quickroam-find' and `quickroam-insert' to know about new files
 immediately."
+  :global t
   (if quickroam-mode
       (progn
         (add-hook 'after-save-hook #'quickroam-reset-soon)
