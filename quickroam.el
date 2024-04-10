@@ -47,12 +47,20 @@
 
 (defcustom quickroam-extra-rg-args
   '("--glob" "**/*.org"
-    "--glob" "!logseq/**"
-    "--glob" "!*.sync-conflict-*")
+    "--glob" "!**/logseq/**"
+    "--glob" "!**/*.sync-conflict-*")
   "Extra arguments to ripgrep - useful for filtering paths.
-These are NOT passed directly to the shell, so there's no need to
-shell-escape characters.  If you have a filename with a space,
-it's fine.  But do not pass several arguments in one string."
+If you are on an exotic system such as Windows, you probably have
+to edit these paths.
+
+Read about syntax at:
+
+  https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md#manual-filtering-globs
+
+These arguments are NOT passed directly to a shell, so there's no
+need to shell-escape characters.  If you have a filename with a
+space, it's fine (I think).  But do not pass several arguments in
+one string."
   :type '(repeat string)
   :group 'org-roam)
 
@@ -188,9 +196,10 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
          (title (completing-read "Node: " coll nil nil nil 'org-roam-node-history))
          (id (cdr (assoc title coll))))
     (unless (and id
-                 (when-let ((qnode (gethash id quickroam-cache)))
-                   (find-file (expand-file-name (plist-get qnode :file) org-roam-directory))
-                   (goto-line (plist-get qnode :line-number))
+                 (when-let ((qr-node (gethash id quickroam-cache)))
+                   (find-file (expand-file-name
+                               (plist-get qr-node :file) org-roam-directory))
+                   (goto-line (plist-get qr-node :line-number))
                    t))
       (org-roam-capture-
        :node (org-roam-node-create :title title)
