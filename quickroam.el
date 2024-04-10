@@ -36,7 +36,7 @@
 ;;
 ;; Setup:
 ;;
-;;     (add-hook 'after-save-hook #'quickroam-aftersave)
+;;     (add-hook 'org-mode-hook #'quickroam-mode)
 ;;
 ;; Requires ripgrep.
 
@@ -167,11 +167,10 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
              "Rebuilt quickroam cache in %.3f seconds"
              (float-time (time-since then)))))
 
-;;;###autoload
-(defun quickroam-aftersave ()
-  "After saving an org-roam file, rebuild the cache."
+(defun quickroam-reset-soon ()
+  "Call `quickroam-reset' after 1 second if inside an org-roam file now."
   (when (org-roam-file-p)
-    (quickroam-reset)))
+    (run-with-timer 1 nil #'quickroam-reset)))
 
 
 ;;; Porcelain
@@ -182,6 +181,7 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
   (interactive)
   (when (hash-table-empty-p quickroam-cache)
     (quickroam-reset))
+  ;; Based on design from `org-roam-node-find'
   (let* ((coll (cl-loop for qr-node being the hash-values of quickroam-cache
                         collect (cons (plist-get qr-node :title)
                                       (plist-get qr-node :id))))
@@ -202,7 +202,7 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
   (interactive)
   (when (hash-table-empty-p quickroam-cache)
     (quickroam-reset))
-  ;; Design borrowed from `org-roam-node-insert'
+  ;; Based on design from `org-roam-node-insert'
   (atomic-change-group
     (let* (region-text
            beg end
@@ -239,6 +239,24 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
                    (list :region (cons beg end)))
                  (list :link-description description
                        :finalize 'insert-link)))))))
+
+;;;###autoload
+(define-minor-mode quickroam-mode
+  "Setup on-save hooks etc to keep the cache updated.
+This permits `quickroam-find' and `quickroam-insert' to know about new files
+immediately."
+  (if quickroam-mode
+      (progn
+        (add-hook 'after-save-hook #'quickroam-reset-soon)
+        (advice-add #'delete-file :before #'quickroam-reset-soon)
+        (advice-add #'rename-file :before #'quickroam-reset-soon))
+    (advice-remove #'rename-file #'quickroam-reset-soon)
+    (advice-remove #'delete-file #'quickroam-reset-soon)
+    (remove-hook 'after-save-hook #'quickroam-reset-soon)))
+
+;; DEPRECATED 2024-04-10
+(defun quickroam-aftersave ()
+  (message "`quickroam-aftersave' deprecated, turn on `quickroam-mode' instead"))
 
 (provide 'quickroam)
 ;;; quickroam.el ends here
