@@ -155,8 +155,7 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
   "For debugging."
   (interactive)
   (require 'seq)
-  (let ((rows (cl-loop for v being the hash-values of quickroam-cache
-                       collect v)))
+  (let ((rows (hash-table-values quickroam-cache)))
     (dotimes (_ 5)
       (print (seq-random-elt rows)))))
 
@@ -169,13 +168,18 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
     (clrhash quickroam-cache)
     (quickroam-scan-subtrees)
     (quickroam-scan-file-level)
+    (setq quickroam--coll
+          (cl-loop for qr-node being the hash-values of quickroam-cache
+                   collect (cons (plist-get qr-node :title) qr-node)))
     (funcall (if interactive #'message #'format)
              "Rebuilt quickroam cache in %.3f seconds"
              (float-time (time-since then)))))
 
+(defvar quickroam--coll nil
+  "Alist of (TITLE . PLIST) for `completing-read' etc.")
+
 (defun quickroam-reset-soon (&rest _)
   "Call `quickroam-reset' after 1 s if in an org-roam file now."
-  (require 'org-roam)
   (when (org-roam-file-p)
     (run-with-timer 1 nil #'quickroam-reset)))
 
@@ -189,18 +193,14 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
   (require 'org-roam)
   (when (hash-table-empty-p quickroam-cache)
     (quickroam-reset))
-  ;; Based on design from `org-roam-node-find'
-  (let* ((coll (cl-loop for qr-node being the hash-values of quickroam-cache
-                        collect (cons (plist-get qr-node :title)
-                                      (plist-get qr-node :id))))
-         (title (completing-read "Node: " coll nil nil nil 'org-roam-node-history))
-         (id (cdr (assoc title coll))))
-    (unless (and id
-                 (when-let ((qr-node (gethash id quickroam-cache)))
-                   (find-file (expand-file-name
-                               (plist-get qr-node :file) org-roam-directory))
-                   (goto-line (plist-get qr-node :line-number))
-                   t))
+  (let* ((title (completing-read "Node: " quickroam--coll nil nil nil 'org-roam-node-history))
+         (qr-node (cdr (assoc title quickroam--coll))))
+    (if qr-node
+        (progn
+          (find-file
+           (expand-file-name (plist-get qr-node :file) org-roam-directory))
+          (goto-line
+           (plist-get qr-node :line-number)))
       (org-roam-capture-
        :node (org-roam-node-create :title title)
        :props '(:finalize find-file)))))
@@ -214,39 +214,29 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
     (quickroam-reset))
   ;; Based on design from `org-roam-node-insert'
   (atomic-change-group
-    (let* (region-text
-           beg end
-           (_ (when (region-active-p)
-                (setq beg (set-marker (make-marker) (region-beginning)))
-                (setq end (set-marker (make-marker) (region-end)))
-                (setq region-text (org-link-display-format (buffer-substring-no-properties beg end)))))
-           (coll (cl-loop for qr-node being the hash-values of quickroam-cache
-                          collect (cons (plist-get qr-node :title)
-                                        (plist-get qr-node :id))))
-           (title (completing-read "Node: " coll nil nil nil 'org-roam-node-history))
-           (id (or (cdr (assoc title coll))))
-           (node (unless id
-                   (let ((node (org-roam-node-create :title title)))
-                     (setq id (org-roam-node-id node))
-                     node)))
+    (let* ((beg nil)
+           (end nil)
+           (region-text (when (region-active-p)
+                          (setq beg (region-beginning))
+                          (setq end (region-end))
+                          (org-link-display-format
+                           (buffer-substring-no-properties beg end))))
+           (title (completing-read "Node: " quickroam--coll nil nil nil 'org-roam-node-history))
+           (qr-node (cdr (assoc title quickroam--coll)))
+           (id (plist-get qr-node :id))
            (description (or region-text title)))
-      (if id
+      (if qr-node
           (progn
             (when region-text
-              (delete-region beg end)
-              (set-marker beg nil)
-              (set-marker end nil))
-            (insert (org-link-make-string
-                     (concat "id:" id)
-                     description))
-            (run-hook-with-args 'org-roam-post-node-insert-hook
-                                id
-                                description))
+              (delete-region beg end))
+            (insert (org-link-make-string (concat "id:" id) description))
+            (run-hook-with-args 'org-roam-post-node-insert-hook id description))
         (org-roam-capture-
-         :node node
+         :node (org-roam-node-create :title title)
          :props (append
-                 (when (and beg end)
-                   (list :region (cons beg end)))
+                 (when region-text
+                   (list :region (cons (set-marker (make-marker) beg)
+                                       (set-marker (make-marker) end))))
                  (list :link-description description
                        :finalize 'insert-link)))))))
 
@@ -262,6 +252,7 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
 This permits `quickroam-find' and `quickroam-insert' to know about new files
 immediately."
   :global t
+  (require 'org-roam)
   (if quickroam-mode
       (progn
         (add-hook 'after-save-hook #'quickroam-reset-soon)
