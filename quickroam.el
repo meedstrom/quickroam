@@ -17,7 +17,7 @@
 
 ;; Author: Martin Edström <meedstrom91@gmail.com>
 ;; Created: 2024-04-09
-;; Version: 0.5.1-pre
+;; Version: 0.6-pre
 ;; Keywords: outlines, hypermedia
 ;; Package-Requires: ((emacs "29.1") (org-roam "2.2.2") (pcre2el "1.12"))
 ;; URL: https://github.com/meedstrom/quickroam
@@ -191,7 +191,7 @@ Simplistic, but works 999/1000 times and doesn't need 1000."
   (require 'org-roam)
   (when (hash-table-empty-p quickroam-cache)
     (quickroam-reset))
-  (let* ((title (completing-read "Node: " quickroam-cache nil nil nil 'org-roam-node-history))
+  (let* ((title (completing-read "Node: " quickroam-cache))
          (node (gethash title quickroam-cache)))
     (if node
         (progn
@@ -210,32 +210,32 @@ Simplistic, but works 999/1000 times and doesn't need 1000."
   (require 'org-roam)
   (when (hash-table-empty-p quickroam-cache)
     (quickroam-reset))
-  (atomic-change-group
-    (let* ((beg nil)
-           (end nil)
-           (region-text (when (region-active-p)
-                          (setq beg (region-beginning))
-                          (setq end (region-end))
-                          (org-link-display-format
-                           (buffer-substring-no-properties beg end))))
-           (title (completing-read "Node: " quickroam-cache nil nil nil 'org-roam-node-history))
-           (node (gethash title quickroam-cache))
-           (id (plist-get node :id))
-           (desc (or region-text title)))
-      (if node
-          (progn
-            (if region-text
-                (delete-region beg end)
-              ;; Try to strip the todo keyword, whatever the todo syntax in that
-              ;; file.  Fail silently because it matters not much.
-              (ignore-errors
-                (org-roam-with-file
-                    (expand-file-name (plist-get node :file) org-roam-directory)
-                    nil
-                  (goto-line (plist-get node :line-number))
-                  (setq desc (nth 4 (org-heading-components))))))
-            (insert (org-link-make-string (concat "id:" id) desc))
-            (run-hook-with-args 'org-roam-post-node-insert-hook id desc))
+  (let* ((beg nil)
+         (end nil)
+         (region-text (when (region-active-p)
+                        (setq beg (region-beginning))
+                        (setq end (region-end))
+                        (org-link-display-format
+                         (buffer-substring-no-properties beg end))))
+         (title (completing-read "Node: " quickroam-cache))
+         (node (gethash title quickroam-cache))
+         (id (plist-get node :id))
+         (desc (or region-text title)))
+    (if node
+        (atomic-change-group
+          (if region-text
+              (delete-region beg end)
+            ;; Try to strip the todo keyword, whatever the todo syntax was in
+            ;; the target file.  Fail silently because it matters not much.
+            (ignore-errors
+              (org-roam-with-file
+                  (expand-file-name (plist-get node :file) org-roam-directory)
+                  nil
+                (goto-line (plist-get node :line-number))
+                (setq desc (nth 4 (org-heading-components))))))
+          (insert (org-link-make-string (concat "id:" id) desc))
+          (run-hook-with-args 'org-roam-post-node-insert-hook id desc))
+      (atomic-change-group
         (org-roam-capture-
          :node (org-roam-node-create :title title)
          :props (append
