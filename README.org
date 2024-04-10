@@ -26,6 +26,7 @@ Install [[https://github.com/BurntSushi/ripgrep][ripgrep]] on your computer.  Th
 
 #+begin_src elisp
 (use-package quickroam
+  :defer
   :straight (quickroam :type git :host github :repo "meedstrom/quickroam"))
 
 (add-hook 'after-save-hook #'quickroam-aftersave)
