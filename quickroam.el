@@ -17,7 +17,7 @@
 
 ;; Author: Martin Edström <meedstrom91@gmail.com>
 ;; Created: 2024-04-09
-;; Version: 0.4.3-pre
+;; Version: 0.5
 ;; Keywords: outlines, hypermedia
 ;; Package-Requires: ((emacs "29.1") (org-roam "2.2.2") (pcre2el "1.12"))
 ;; URL: https://github.com/meedstrom/quickroam
@@ -79,15 +79,21 @@ hand, you get no shell magic such as globs or envvars."
     (apply #'call-process program nil t nil args)
     (buffer-string)))
 
-(defvar quickroam-cache
-  (make-hash-table :size 4000 :test #'equal)
+(defvar quickroam-cache (make-hash-table :size 4000 :test #'equal)
   "Table of org-roam node titles with associated data in plists.
-To peek on the contents, try \\[quickroam--print-random-rows].
+To peek on the contents, try \\[quickroam-debug-print-random-nodes].
 
 The db key is not the org-id as you might expect, because keying
 on title allows `completing-read' to use it as-is, and the
 upstream `org-roam-node-find' actually expected titles to be
 unique too(!).")
+
+(defun quickroam-debug-print-random-nodes ()
+  "For debugging: peek on some rows of `quickroam-cache'."
+  (interactive)
+  (let ((rows (hash-table-values quickroam-cache)))
+    (dotimes (_ 5)
+      (print (nth (random (length rows)) rows)))))
 
 (defconst quickroam-file-level-re
   (rxt-elisp-to-pcre
@@ -99,15 +105,15 @@ unique too(!).")
 (defun quickroam-scan-file-level ()
   "Scan `org-roam-directory' for file-level nodes."
   (let* ((default-directory org-roam-directory)
-         (result (apply #'quickroam--program-output "rg"
-                        `("--multiline"
-                          "--ignore-case"
-                          "--line-number"
-                          "--only-matching"
-                          "--replace" "	$1	$2"
-                          ,@quickroam-extra-rg-args
-                          ,quickroam-file-level-re))))
-    (dolist (line (string-split result "\n" t))
+         (rg-result (apply #'quickroam--program-output "rg"
+                           `("--multiline"
+                             "--ignore-case"
+                             "--line-number"
+                             "--only-matching"
+                             "--replace" "	$1	$2"
+                             ,@quickroam-extra-rg-args
+                             ,quickroam-file-level-re))))
+    (dolist (line (string-split rg-result "\n" t))
       (let* ((groups (string-split line "\t"))
              (file:line (string-split (pop groups) ":"))
              ($1 (pop groups))
@@ -136,15 +142,15 @@ unique too(!).")
 (defun quickroam-scan-subtrees ()
   "Scan `org-roam-directory' for subtree nodes."
   (let* ((default-directory org-roam-directory)
-         (result (apply #'quickroam--program-output "rg"
-                        `("--multiline"
-                          "--ignore-case"
-                          "--line-number"
-                          "--only-matching"
-                          "--replace" "	$1	$2"
-                          ,@quickroam-extra-rg-args
-                          ,quickroam-subtree-re))))
-    (dolist (line (string-split result "\n" t))
+         (rg-result (apply #'quickroam--program-output "rg"
+                           `("--multiline"
+                             "--ignore-case"
+                             "--line-number"
+                             "--only-matching"
+                             "--replace" "	$1	$2"
+                             ,@quickroam-extra-rg-args
+                             ,quickroam-subtree-re))))
+    (dolist (line (string-split rg-result "\n" t))
       (let* ((groups (string-split line "\t"))
              (file:line (string-split (pop groups) ":"))
              ($1 (pop groups))
@@ -155,14 +161,6 @@ unique too(!).")
                           :line-number (string-to-number (cadr file:line)))
                  quickroam-cache)))))
 
-(defun quickroam--print-random-rows ()
-  "For debugging."
-  (interactive)
-  (require 'seq)
-  (let ((rows (hash-table-values quickroam-cache)))
-    (dotimes (_ 5)
-      (print (seq-random-elt rows)))))
-
 (defun quickroam-reset (&optional interactive)
   "Wipe and rebuild the cache."
   (interactive "p")
@@ -170,14 +168,14 @@ unique too(!).")
     (error "Install ripgrep to use quickroam"))
   (let ((then (current-time)))
     (clrhash quickroam-cache)
-    (quickroam-scan-subtrees)
     (quickroam-scan-file-level)
+    (quickroam-scan-subtrees)
     (funcall (if interactive #'message #'format)
              "Rebuilt quickroam cache in %.3f seconds"
              (float-time (time-since then)))))
 
 (defun quickroam-reset-soon (&rest _)
-  "Call `quickroam-reset' after 1 s if in an org-roam file now."
+  "Call `quickroam-reset' in 1 sec if now inside an org-roam file."
   (when (org-roam-file-p)
     (run-with-timer 1 nil #'quickroam-reset)))
 
@@ -210,7 +208,6 @@ unique too(!).")
   (require 'org-roam)
   (when (hash-table-empty-p quickroam-cache)
     (quickroam-reset))
-  ;; Based on design from `org-roam-node-insert'
   (atomic-change-group
     (let* ((beg nil)
            (end nil)
@@ -222,20 +219,20 @@ unique too(!).")
            (title (completing-read "Node: " quickroam-cache nil nil nil 'org-roam-node-history))
            (qr-node (gethash title quickroam-cache))
            (id (plist-get qr-node :id))
-           (description (or region-text title)))
+           (desc (or region-text title)))
       (if qr-node
           (progn
             (when region-text
               (delete-region beg end))
-            (insert (org-link-make-string (concat "id:" id) description))
-            (run-hook-with-args 'org-roam-post-node-insert-hook id description))
+            (insert (org-link-make-string (concat "id:" id) desc))
+            (run-hook-with-args 'org-roam-post-node-insert-hook id desc))
         (org-roam-capture-
          :node (org-roam-node-create :title title)
          :props (append
                  (when region-text
                    (list :region (cons (set-marker (make-marker) beg)
                                        (set-marker (make-marker) end))))
-                 (list :link-description description
+                 (list :link-description desc
                        :finalize 'insert-link)))))))
 
 ;;;###autoload
