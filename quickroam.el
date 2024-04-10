@@ -17,7 +17,7 @@
 
 ;; Author: Martin Edström <meedstrom91@gmail.com>
 ;; Created: 2024-04-09
-;; Version: 0.1
+;; Version: 0.2
 ;; Keywords: outlines, hypermedia
 ;; Package-Requires: ((emacs "29.1") (org-roam "2.2.2") (pcre2el "1.12"))
 ;; URL: https://github.com/meedstrom/quickroam
@@ -188,10 +188,10 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
          (title (completing-read "Node: " coll nil nil nil 'org-roam-node-history)))
     (unless (and title
                  (let* ((id (cdr (assoc title coll)))
-                        (node (org-roam-node-from-id id)))
-                   (when (and node (org-roam-node-file node))
-                     (org-roam-node-visit node)
-                     t)))
+                        (qnode (gethash id quickroam-cache)))
+                   (find-file (expand-file-name (plist-get qnode :file) org-roam-directory))
+                   (goto-line (plist-get qnode :line-number))
+                   t))
       (org-roam-capture-
        :node (org-roam-node-create :title title)
        :props '(:finalize find-file)))))
@@ -214,26 +214,24 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
                           collect (cons (plist-get qr-node :title)
                                         (plist-get qr-node :id))))
            (title (completing-read "Node: " coll nil nil nil 'org-roam-node-history))
-           (node (or (and title
-                          (let* ((id (cdr (assoc title coll)))
-                                 (node (org-roam-node-from-id id)))
-                            (when (and node (org-roam-node-file node))
-                              node)))
-                     (org-roam-node-create :title title)))
-           (description (or region-text (org-roam-node-formatted node))))
-      (if (org-roam-node-id node)
+           (id (or (cdr (assoc title coll))))
+           (node (unless id
+                   (let ((node (org-roam-node-create :title title)))
+                     (setq id (org-roam-node-id node))
+                     node)))
+           (description (or region-text title)))
+      (if id
           (progn
             (when region-text
               (delete-region beg end)
               (set-marker beg nil)
               (set-marker end nil))
-            (let ((id (org-roam-node-id node)))
-              (insert (org-link-make-string
-                       (concat "id:" id)
-                       description))
-              (run-hook-with-args 'org-roam-post-node-insert-hook
-                                  id
-                                  description)))
+            (insert (org-link-make-string
+                     (concat "id:" id)
+                     description))
+            (run-hook-with-args 'org-roam-post-node-insert-hook
+                                id
+                                description))
         (org-roam-capture-
          :node node
          :props (append
