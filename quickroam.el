@@ -76,13 +76,19 @@ one string."
       (print (nth (random (length rows)) rows)))))
 
 (defvar quickroam-cache (make-hash-table :size 4000 :test #'equal)
-  "Table of org-roam node titles with associated data in plists.
+  "Table of org-roam node titles, with associated data in plists.
 To peek on the contents, try \\[quickroam-debug-print-random-nodes].
 
-We don't use the org-id for the database key as you might expect,
-because keying on title allows `completing-read' to use the
-variable as-is, and the upstream `org-roam-node-find' actually
-expected titles to be unique too(!).")
+Contrary to what you might expect, we don't use the org-ID as the
+database key because keying on the title instead allows
+`completing-read' to use this variable as-is.  If two nodes have
+the same title, one gets dropped, but that matches the behavior
+of upstream `org-roam-node-find'!
+
+Another way to think of it: since this cache is only used for
+`quickroam-find'/`quickroam-insert', it is fine to drop
+same-titled nodes.  If it were used to populate `org-roam-db' or
+`org-id-locations', we'd have a serious problem.")
 
 (defun quickroam--program-output (program &rest args)
   "Like `shell-command-to-string', but skip the shell intermediary.
@@ -136,9 +142,9 @@ hand, you get no shell magic such as globs or envvars."
                           :line-number (string-to-number (cadr file:line)))
                  quickroam-cache)))))
 
-;; For now, this function looks almost exactly identical to
-;; `quickroam-scan-file-level-nodes', but they may diverge when I
-;; extend the package as described in the README.
+;; For now, this function looks near-identical to
+;; `quickroam-scan-file-level-nodes', but they may diverge
+;; when I extend the package as described in the README.
 (defun quickroam-scan-subtree-nodes ()
   "Scan `org-roam-directory' for subtree nodes."
   (let* ((default-directory org-roam-directory)
@@ -163,7 +169,7 @@ hand, you get no shell magic such as globs or envvars."
 
 (defun quickroam-reset (&optional interactive)
   "Wipe and rebuild the cache.
-INTERACTIVE is set internally."
+INTERACTIVE is automatically set when called interactively."
   (interactive "p")
   (unless (executable-find "rg")
     (error "Install ripgrep to use quickroam"))
@@ -176,8 +182,10 @@ INTERACTIVE is set internally."
              (float-time (time-since then)))))
 
 (defun quickroam-reset-soon (&rest _)
-  "Call `quickroam-reset' in 1 sec if inside an org-roam file now.
-Simplistic, but works 999/1000 times and doesn't need 1000."
+  "Reset cache after 1 second if inside an org-roam file now.
+
+It's a simplistic trick to work on :before `delete-file', but
+usually works and doesn't need to always work anyway."
   (when (org-roam-file-p)
     (run-with-timer 1 nil #'quickroam-reset)))
 
@@ -220,21 +228,21 @@ Simplistic, but works 999/1000 times and doesn't need 1000."
          (title (completing-read "Node: " quickroam-cache))
          (node (gethash title quickroam-cache))
          (id (plist-get node :id))
-         (desc (or region-text title)))
+         (link-desc (or region-text title)))
     (if node
         (atomic-change-group
           (if region-text
               (delete-region beg end)
-            ;; Try to strip the todo keyword, whatever the todo syntax was in
-            ;; the target file.  Fail silently because it matters not much.
+            ;; Try to strip the todo keyword, whatever counted as todo syntax
+            ;; in the target file.  Fail silently because it matters not much.
             (ignore-errors
               (org-roam-with-file
                   (expand-file-name (plist-get node :file) org-roam-directory)
                   nil
                 (goto-line (plist-get node :line-number))
-                (setq desc (nth 4 (org-heading-components))))))
-          (insert (org-link-make-string (concat "id:" id) desc))
-          (run-hook-with-args 'org-roam-post-node-insert-hook id desc))
+                (setq link-desc (nth 4 (org-heading-components))))))
+          (insert (org-link-make-string (concat "id:" id) link-desc))
+          (run-hook-with-args 'org-roam-post-node-insert-hook id link-desc))
       (atomic-change-group
         (org-roam-capture-
          :node (org-roam-node-create :title title)
@@ -242,7 +250,7 @@ Simplistic, but works 999/1000 times and doesn't need 1000."
                  (when region-text
                    (list :region (cons (set-marker (make-marker) beg)
                                        (set-marker (make-marker) end))))
-                 (list :link-description desc
+                 (list :link-description link-desc
                        :finalize 'insert-link)))))))
 
 ;;;###autoload
@@ -253,7 +261,7 @@ Simplistic, but works 999/1000 times and doesn't need 1000."
 
 ;;;###autoload
 (define-minor-mode quickroam-mode
-  "Prep save-hooks etc to update the cache.
+  "Instruct on-save hooks and such things to update the cache.
 Updating the cache lets `quickroam-find' and `quickroam-insert'
 know about new files immediately."
   :global t
