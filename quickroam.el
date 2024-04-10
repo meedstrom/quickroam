@@ -17,7 +17,7 @@
 
 ;; Author: Martin Edström <meedstrom91@gmail.com>
 ;; Created: 2024-04-09
-;; Version: 0.4.1
+;; Version: 0.4.2
 ;; Keywords: outlines, hypermedia
 ;; Package-Requires: ((emacs "29.1") (org-roam "2.2.2") (pcre2el "1.12"))
 ;; URL: https://github.com/meedstrom/quickroam
@@ -185,10 +185,10 @@ To peek on the contents, try \\[quickroam--print-random-rows].")
   (let* ((coll (cl-loop for qr-node being the hash-values of quickroam-cache
                         collect (cons (plist-get qr-node :title)
                                       (plist-get qr-node :id))))
-         (title (completing-read "Node: " coll nil nil nil 'org-roam-node-history)))
-    (unless (and title
-                 (let* ((id (cdr (assoc title coll)))
-                        (qnode (gethash id quickroam-cache)))
+         (title (completing-read "Node: " coll nil nil nil 'org-roam-node-history))
+         (id (cdr (assoc title coll))))
+    (unless (and id
+                 (when-let ((qnode (gethash id quickroam-cache)))
                    (find-file (expand-file-name (plist-get qnode :file) org-roam-directory))
                    (goto-line (plist-get qnode :line-number))
                    t))
