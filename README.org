@@ -1,7 +1,7 @@
 * Quickroam
 ** Is your org-roam slow?
 
-If you're like me, you think [[https://github.com/org-roam/org-roam][org-roam v2]] has the right idea, but the current form is not reliable or fast enough for day-to-day work.
+If you're like me, you think [[https://github.com/org-roam/org-roam][org-roam]] has the right idea, but the current implementation is not reliable or fast enough for day-to-day work.
 
 1. The end-user commands take 5 seconds to get the minibuffer ready.
    - A [[https://edstrom.dev/czdfr/org-roam-fixes#jxbqt][workaround by memoizing]] works well most of the time, but if I create a new node and immediately want to insert it elsewhere, I have to wait for an idle timer to update the memoization.
@@ -18,7 +18,7 @@ This package fixes both of above problems via alternatives to common commands:
 - =org-roam-node-find= -- use =quickroam-find=
 - =org-roam-node-insert= -- use =quickroam-insert=
 
-They don't look up the org-roam DB at all, and just rely on ripgrep instead.
+They don't look up the org-roam DB at all, and just rely on ripgrep instead.  You can leave =org-roam-db-autosync-mode= off.
 
 ** Setup
 

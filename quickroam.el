@@ -51,24 +51,25 @@
     "--glob" "!**/*.sync-conflict-*") ;; ignore Syncthing dups
   "Extra arguments to ripgrep - useful for filtering paths.
 
-On an exotic system such as Windows, you probably have to edit
-these paths.
+Rather than add arguments here, it's probably easier to rely on
+an .ignore or .gitignore file in `org-roam-directory'.
 
-Read about syntax in the Ripgrep guide:
+On an exotic system such as Windows, you probably have to edit
+these paths.  Read about glob syntax in the Ripgrep guide:
 
   https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md
 
 These arguments are NOT passed directly to a shell, so there's no
 need to shell-escape characters.  If you have a filename with a
-space, it's fine (I think).  But do not pass several arguments in
-one string."
+space, it's fine (I think).  Do not pass several arguments in a
+single string, it will nto work."
   :type '(repeat string)
   :group 'org-roam)
 
 
 ;;; Plumbing
 
-(defun quickroam-debug-print-random-nodes ()
+(defun quickroam-peek ()
   "For debugging: peek on some rows of `quickroam-cache'."
   (interactive)
   (let ((rows (hash-table-values quickroam-cache)))
@@ -77,7 +78,7 @@ one string."
 
 (defvar quickroam-cache (make-hash-table :size 4000 :test #'equal)
   "Table of org-roam node titles, with associated data in plists.
-To peek on the contents, try \\[quickroam-debug-print-random-nodes].
+To peek on the contents, try \\[quickroam-debug-show-random-nodes].
 
 Contrary to what you might expect, we don't use the org-ID as the
 database key because keying on the title instead allows
@@ -114,38 +115,38 @@ hand, you get no shell magic such as globs or envvars."
        (? (+ space) ":" (+ nonl) ":") (* space)   ; (* heading...) :tags:
        (? "\n" (*? space) (not "*") (* nonl))     ; CLOSED/SCHEDULED
        "\n" (*? space) ":PROPERTIES:"
-       (*? "\n" (* nonl))
+       (*? "\n" (*? space) ":" (* nonl))
        "\n" (*? space) ":ID:" (+ space) (group (+ nonl))
-       (*? "\n" (* nonl))
+       (*? "\n" (*? space) ":" (* nonl))
        "\n" (*? space) ":END:"))
   "Regexp to match subtree nodes.")
 
-(defun quickroam-scan-file-level-nodes ()
+(defun quickroam-seek-file-level-nodes ()
   "Scan `org-roam-directory' for file-level nodes."
   (let* ((default-directory org-roam-directory)
          (rg-result (apply #'quickroam--program-output "rg"
                            `("--multiline"
                              "--ignore-case"
                              "--line-number"
+                             "--max-count" "1"
                              "--only-matching"
                              "--replace" "	$1	$2"
                              ,@quickroam-extra-rg-args
                              ,quickroam-file-level-re))))
     (dolist (line (string-split rg-result "\n" t))
       (let* ((groups (string-split line "\t"))
-             (file:line (string-split (pop groups) ":"))
+             (file:lnum (string-split (pop groups) ":"))
              ($1 (pop groups))
              ($2 (pop groups)))
         (puthash $2 (list :title $2
                           :id $1
-                          :file (car file:line)
-                          :line-number (string-to-number (cadr file:line)))
+                          :file (car file:lnum)
+                          :line-number (string-to-number (cadr file:lnum)))
                  quickroam-cache)))))
 
-;; For now, this function looks near-identical to
-;; `quickroam-scan-file-level-nodes', but they may diverge
-;; when I extend the package as described in the README.
-(defun quickroam-scan-subtree-nodes ()
+;; Today this function looks almost identical to `quickroam-seek-file-level-nodes', but
+;; they may diverge in the future.
+(defun quickroam-seek-subtree-nodes ()
   "Scan `org-roam-directory' for subtree nodes."
   (let* ((default-directory org-roam-directory)
          (rg-result (apply #'quickroam--program-output "rg"
@@ -158,33 +159,28 @@ hand, you get no shell magic such as globs or envvars."
                              ,quickroam-subtree-re))))
     (dolist (line (string-split rg-result "\n" t))
       (let* ((groups (string-split line "\t"))
-             (file:line (string-split (pop groups) ":"))
+             (file:lnum (string-split (pop groups) ":"))
              ($1 (pop groups))
              ($2 (pop groups)))
         (puthash $1 (list :title $1
                           :id $2
-                          :file (car file:line)
-                          :line-number (string-to-number (cadr file:line)))
+                          :file (car file:lnum)
+                          :line-number (string-to-number (cadr file:lnum)))
                  quickroam-cache)))))
 
-(defun quickroam-reset (&optional interactive)
-  "Wipe and rebuild the cache.
-INTERACTIVE is automatically set when called interactively."
-  (interactive "p")
+(defun quickroam-reset ()
+  "Wipe and rebuild the cache."
+  (interactive)
   (unless (executable-find "rg")
     (error "Install ripgrep to use quickroam"))
-  (let ((then (current-time)))
-    (clrhash quickroam-cache)
-    (quickroam-scan-file-level-nodes)
-    (quickroam-scan-subtree-nodes)
-    (funcall (if interactive #'message #'format)
-             "Rebuilt quickroam cache in %.3f seconds"
-             (float-time (time-since then)))))
+  (clrhash quickroam-cache)
+  (quickroam-seek-file-level-nodes)
+  (quickroam-seek-subtree-nodes))
 
 (defun quickroam-reset-soon (&rest _)
   "Reset cache after 1 second if inside an org-roam file now.
 
-It's a simplistic trick to work on :before `delete-file', but
+It's a simplistic trick to work on :before `delete-file', 
 usually works and doesn't need to always work anyway."
   (when (org-roam-file-p)
     (run-with-timer 1 nil #'quickroam-reset)))
@@ -233,7 +229,7 @@ usually works and doesn't need to always work anyway."
         (atomic-change-group
           (if region-text
               (delete-region beg end)
-            ;; Try to strip the todo keyword, whatever counted as todo syntax
+            ;; Try to strip the todo keyword, whatever counts as todo syntax
             ;; in the target file.  Fail silently because it matters not much.
             (ignore-errors
               (org-roam-with-file
