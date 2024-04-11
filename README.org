@@ -55,12 +55,12 @@ This package is a proof-of-concept that ripgrep can collect part of the data nee
 
 You can see all the data org-roam collects in [[https://github.com/org-roam/org-roam/blob/v2.2.2/org-roam-db.el#L229][org-roam-db--table-schemata]].
 
-Two ways forward:
+Three ways forward:
 
 1. Don't parse Org syntax, and compromise on the kinds of data to collect.
 
 2. Keep parsing Org syntax, but do it faster.
-   - Maybe rewrite =org-roam-db-update-file= to use [[https://github.com/alphapapa/org-ql][org-ql]]?
+   - Maybe rewrite =org-roam-db-update-file= to scan the buffer with [[https://github.com/alphapapa/org-ql][org-ql]]
 
 3. Parse Org syntax ahead-of-time.
    - View the SQLite database as a first-order cache, and create a second-order cache consisting of the org-super-links approach, mentioned above.
