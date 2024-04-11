@@ -40,6 +40,12 @@ Install [[https://github.com/BurntSushi/ripgrep][ripgrep]] on your computer.  Th
 
 This package is a proof-of-concept that ripgrep can collect part of the data needed by the org-roam DB.  However, simple regexps cannot collect all that's needed.  Some challenges:
 
+- *The outline path*
+  - What it's used for: https://fosstodon.org/@nickanderson/112249581810196258
+
+- *TODO/DONE keywords*
+  - Need awareness of buffer-local =#+seq_todo= settings
+
 - *Backlink context*: the name of the subtree-node in which a link is found
   - Pretty important since backlinks butter our bread, right?
   - If we mandated the rule of "one file, one node" like zk/orgrr/denote do, we'd only need to grab the file title.  But that's not why we're here.  Org-roam's nested nodes are the best thing since sliced bread, but they need us to parse the Org syntax.
@@ -47,13 +53,7 @@ This package is a proof-of-concept that ripgrep can collect part of the data nee
     - Another option is to /cache the backlinks/ as a property or drawer(!) like [[https://github.com/toshism/org-super-links][org-super-links]] does.
 
 
-- *The outline path*
-  - What it's used for: https://fosstodon.org/@nickanderson/112249581810196258
-
-- *TODO/DONE keywords*
-  - Need awareness of buffer-local =#+seq_todo= settings
-
-All the data org-roam collects are specified in [[https://github.com/org-roam/org-roam/blob/v2.2.2/org-roam-db.el#L229][org-roam-db--table-schemata]].
+You can see all the data org-roam collects in [[https://github.com/org-roam/org-roam/blob/v2.2.2/org-roam-db.el#L229][org-roam-db--table-schemata]].
 
 Two ways forward:
 
@@ -62,8 +62,8 @@ Two ways forward:
 2. Keep parsing Org syntax, but do it faster.
    - Maybe rewrite =org-roam-db-update-file= to use [[https://github.com/alphapapa/org-ql][org-ql]]?
    - View the SQLite database as a first-order cache, and create a second-order cache consisting of the org-super-links approach, mentioned above.
-     - It's a powerful concept!  Write directly into property drawers everything that's impossible to write a regexp for, so you can later just grep the cached values.
-       - Ripgrep would be sufficient to populate the SQLite database from scratch.  Or we could discard the database.
+     - It's a powerful concept!  Record directly into property drawers everything that's impossible to write a regexp for, so you can later just grep the cached values.
+       - Now syncing the DB has been reduced to a simple grep job.  No lines of Org code needs to run.  We could even get rid of the database since ripgrep-based "queries" would likely be fast too.
        - Of course, it relies on wrapping many user commands: let's say you record the subtree's outline path as a property =:OLP:=, and every time you indent or outdent a subtree, some advice would update this property.
          - In real life, we can't trust that 100% of the time, so it'd be good to have a command to validate all the properties in all files.  The win is that you don't need to run such code on /every/ =(org-roam-db-sync 'force)=, you'd just run it as a kind of linter once a month!
 
