@@ -18,9 +18,9 @@ This package provides alternatives to common commands:
 - =org-roam-node-find= -- use =quickroam-find=
 - =org-roam-node-insert= -- use =quickroam-insert=
 
-They don't look up the org-roam DB at all, and just rely on ripgrep.  They're fast, solving problem #1, and they always find up-to-date hits, so you can now set =org-roam-db-update-on-save= to nil to solve problem #2.
+They don't look up the org-roam DB at all, just rely on ripgrep.  They're fast, solving problem #1, and they always find up-to-date hits, so you can now set =org-roam-db-update-on-save= to nil to solve problem #2.
 
-If you do disable update-on-save, be aware that backlinks will not update until you manually do =M-x org-roam-db-sync RET=.
+If you do the #2 fix, be aware that backlinks do not update until you manually run =M-x org-roam-db-sync RET=.
 
 ** Setup
 
@@ -38,7 +38,7 @@ Install [[https://github.com/BurntSushi/ripgrep][ripgrep]] on your computer.  Th
 
 ** Future work
 
-This package is a proof-of-concept that ripgrep can collect part of the data needed by the org-roam DB.  However, simple regexps cannot collect all of it.  Some challenges:
+This package is a proof-of-concept that ripgrep can collect part of the data needed by the org-roam DB.  However, simple regexps cannot collect all that's needed.  Some challenges:
 
 - *Backlink context*: the name of the subtree-node in which a link is found
   - Pretty important since backlinks butter our bread, right?
@@ -52,11 +52,13 @@ This package is a proof-of-concept that ripgrep can collect part of the data nee
 - *TODO/DONE keywords*
   - Need awareness of buffer-local =#+seq_todo= settings
 
-All the data org-roam collects can be seen in [[https://github.com/org-roam/org-roam/blob/v2.2.2/org-roam-db.el#L229][org-roam-db--table-schemata]].  So two ways forward:
+All the data org-roam collects are specified in [[https://github.com/org-roam/org-roam/blob/v2.2.2/org-roam-db.el#L229][org-roam-db--table-schemata]].
 
-1. Keep parsing Org syntax, but do it faster.  Maybe by rewriting =org-roam-db-update-file= to use [[https://github.com/alphapapa/org-ql][org-ql]]?
+Two ways forward:
 
-2. Don't parse Org syntax, and find a compromise on the kinds of data to collect.
+1. Keep parsing Org syntax, but do it faster.  Maybe rewrite =org-roam-db-update-file= to use [[https://github.com/alphapapa/org-ql][org-ql]]?
+
+2. Don't parse Org syntax, and compromise on the kinds of data to collect.
 
 ** Thanks
 
