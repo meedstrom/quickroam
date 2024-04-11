@@ -199,7 +199,7 @@ usually works and doesn't need to always work anyway."
   (require 'org-roam)
   (when (hash-table-empty-p quickroam-cache)
     (quickroam-reset))
-  (let* ((title (completing-read "Node: " quickroam-cache))
+  (let* ((title (completing-read "Node: " quickroam-cache nil nil nil 'org-roam-node-history))
          (node (gethash title quickroam-cache)))
     (if node
         (progn
@@ -225,7 +225,7 @@ usually works and doesn't need to always work anyway."
                         (setq end (region-end))
                         (org-link-display-format
                          (buffer-substring-no-properties beg end))))
-         (title (completing-read "Node: " quickroam-cache))
+         (title (completing-read "Node: " quickroam-cache nil nil nil 'org-roam-node-history))
          (node (gethash title quickroam-cache))
          (id (plist-get node :id))
          (link-desc (or region-text title)))
