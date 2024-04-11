@@ -18,7 +18,7 @@ This package fixes both of above problems via alternatives to common commands:
 - =org-roam-node-find= -- use =quickroam-find=
 - =org-roam-node-insert= -- use =quickroam-insert=
 
-They don't look up the org-roam DB at all, and just rely on ripgrep.  That means the commands always find up-to-date hits, so you can now set =org-roam-db-update-on-save= to nil.  Though be aware that the backlinks will not update either until you do a =M-x org-roam-db-sync=.
+They don't look up the org-roam DB at all, and just rely on ripgrep.  That means the commands always find up-to-date hits, so you can now set =org-roam-db-update-on-save= to nil.  If you do that, be aware that backlinks will not update until you manually do =M-x org-roam-db-sync RET=.
 
 ** Setup
 
@@ -36,9 +36,24 @@ Install [[https://github.com/BurntSushi/ripgrep][ripgrep]] on your computer.  Th
 
 ** Future work
 
-This package could be extended to collect all the data needed to populate the SQL database, so we can stop using =org-roam-db-sync= altogether.
+This package is a proof-of-concept that ripgrep can collect part of the data needed by the org-roam DB.  However, simple regexps cannot collect all of it.  Some challenges:
 
-We "just" have to design a better regexp.  As it is, it just grabs titles and IDs, which satisfies the current purpose.  Totally replacing =org-roam-db-sync= may limit org-roam's hackability, but perhaps it's worth that.
+- *Backlink context*: the name of the subtree-node in which a link is found
+  - Pretty important since backlinks butter our bread, right?
+  - If we mandated the rule of "one file, one node" like zk/orgrr/denote do, we'd only need to grab the file title.  But that's not why we're here.  Org-roam's nested nodes are the best thing since sliced bread, but they need us to parse the Org syntax.
+    - We could satisfice with a poor-man's backlinks buffer by letting it just show, say, 2 lines above and below each link, reminiscent of a diff output.
+
+- *The outline path*
+  - What it's used for: https://fosstodon.org/@nickanderson/112249581810196258
+
+- *TODO/DONE keywords*
+  - Need awareness of buffer-local =#+seq_todo= settings
+
+All the data org-roam collects can be seen in [[https://github.com/org-roam/org-roam/blob/v2.2.2/org-roam-db.el#L229][org-roam-db--table-schemata]].  So two ways forward:
+
+1. Keep parsing Org syntax, but do it faster.  Maybe by rewriting =org-roam-db-update-file= to use [[https://github.com/alphapapa/org-ql][org-ql]]?
+
+2. Don't parse Org syntax, and find a compromise on the kinds of data to collect.
 
 ** Thanks
 
