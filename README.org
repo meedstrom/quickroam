@@ -60,15 +60,15 @@ Three ways forward:
 1. Don't parse Org syntax, and compromise on the kinds of data to collect.
 
 2. Keep parsing Org syntax, but do it faster.
-   - Maybe rewrite =org-roam-db-update-file= to scan the buffer with [[https://github.com/alphapapa/org-ql][org-ql]]
+   - Maybe rewrite =org-roam-db-update-file= to scan the buffer with [[https://github.com/alphapapa/org-ql][org-ql]]?  Don't know if it'd be faster.
 
 3. Parse Org syntax ahead-of-time.
-   - View the SQLite database as a first-order cache, and create a second-order cache consisting of the org-super-links approach, mentioned above.
-     - It's a powerful concept!  Record directly into property drawers everything that's /impossible to write a regexp for/, so you can later just grep the cached values.
+   - View the SQLite database as a first-order cache, and create a second-order cache consisting of the org-super-links approach mentioned earlier.
+     - It's a powerful concept!  Record directly into property drawers everything that's /impossible to write a regexp for/, so you can later just grep the values.
        - Now syncing the DB has been reduced to a job for grep.  No lines of Org code need to run.
-         - We could even get rid of the DB since ripgrep-based "queries" would likely be fast enough.
-           - SQL queries are a handy tool for package devs, so we could still keep the DB and just rebuild it much more often rather than risk stale data.  There definitely needs to be /a/ query language to use, so if we scrap it, we should make sure everything can be done in [[https://github.com/alphapapa/org-ql][org-ql]].  In fact, alphapapa has expressed interest in giving org-ql a SQL backend, so it's a promising place to for synergy to happen!
-       - Of course, this relies on wrapping many user commands: let's say you record the subtree's outline path as a property =:OLP:=, and every time you indent or outdent a subtree, some advice automatically updates this property.
+         - We could even get rid of the DB, since ripgrep-based "queries" would likely be fast.
+           - SQL queries are a handy tool for package devs, so we could still keep the DB and just rebuild it much more often rather than risk stale data.  There definitely needs to be /a/ query language to use, so if we scrap it, we should make sure everything can be done in [[https://github.com/alphapapa/org-ql][org-ql]].  In fact, alphapapa has expressed interest in giving org-ql a SQL backend, so it's a promising place for synergy to happen!
+       - Caveat: we must wrap many user commands.  Let's say you record the subtree's outline path as a property =:OLP:=, and every time you indent or outdent a subtree, some advice automatically updates this property.
          - In real life, we can't trust that 100% of the time, so it'd be good to have a command to validate all the properties in all files.  It's still a win because you don't need to run such code on /every/ =(org-roam-db-sync 'force)=, you'd just run it as a kind of linter once a month!
 
 ** Thanks
