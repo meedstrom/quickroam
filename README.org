@@ -42,6 +42,7 @@ This package is a proof-of-concept that ripgrep can collect part of the data nee
   - Pretty important since backlinks butter our bread, right?
   - If we mandated the rule of "one file, one node" like zk/orgrr/denote do, we'd only need to grab the file title.  But that's not why we're here.  Org-roam's nested nodes are the best thing since sliced bread, but they need us to parse the Org syntax.
     - We could satisfice with a poor-man's backlinks buffer by letting it just show, say, 2 lines above and below each link, reminiscent of a diff output.
+    - Another option is to /cache the backlinks/ as a property or drawer(!) like [[https://github.com/toshism/org-super-links][org-super-links]] does.
 
 - *The outline path*
   - What it's used for: https://fosstodon.org/@nickanderson/112249581810196258
