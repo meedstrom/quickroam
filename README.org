@@ -9,7 +9,7 @@ If you're like me, you think [[https://github.com/org-roam/org-roam][org-roam]] 
 2. Very large Org files take 10 seconds to save with =org-roam-db-autosync-mode=.
    - I can turn the mode off, but then I need to manually run =M-x org-roam-db-sync= every now and then!  Not great when I'm in the zone and writing.
 
-As best I can tell by reading the source code, problems #1 and #2 are totally separate.  Problem #1 /should/ be fixable, but #2 arises from the fact that org-roam is very generalized -- for example, it lets you plug in user-defined functions to exclude or include a node.  That hacks the good hack, but it means that org-roam is forced to use Org functions to "properly" parse every file it scans, incurring all the penalties of doing so.
+As best I can tell by reading the source code, problems #1 and #2 are totally separate.  Problem #1 /should/ be fixable, but #2 arises from the fact that org-roam is very generalized -- for example, it lets you plug in user-defined functions to exclude or include a node.  That's nice and hackable, but it means that org-roam is forced to use Org functions to "properly" parse every file it scans, incurring all the penalties of doing so.
 
 ** Fix
 
@@ -18,7 +18,7 @@ This package fixes both of above problems via alternatives to common commands:
 - =org-roam-node-find= -- use =quickroam-find=
 - =org-roam-node-insert= -- use =quickroam-insert=
 
-They don't look up the org-roam DB at all, and just rely on ripgrep instead.  You can leave =org-roam-db-autosync-mode= off.
+They don't look up the org-roam DB at all, and just rely on ripgrep.  That means the commands always find up-to-date hits, so you can now set =org-roam-db-update-on-save= to nil.  Though be aware that the backlinks will not update either until you do a =M-x org-roam-db-sync=.
 
 ** Setup
 
