@@ -13,12 +13,14 @@ As best I can tell by reading the source code, problems #1 and #2 are totally se
 
 ** Fix
 
-This package fixes both of above problems via alternatives to common commands:
+This package provides alternatives to common commands:
 
 - =org-roam-node-find= -- use =quickroam-find=
 - =org-roam-node-insert= -- use =quickroam-insert=
 
-They don't look up the org-roam DB at all, and just rely on ripgrep.  That means the commands always find up-to-date hits, so you can now set =org-roam-db-update-on-save= to nil.  If you do that, be aware that backlinks will not update until you manually do =M-x org-roam-db-sync RET=.
+They don't look up the org-roam DB at all, and just rely on ripgrep.  They're fast, solving problem #1, and they always find up-to-date hits, so you can now set =org-roam-db-update-on-save= to nil to solve problem #2.
+
+If you do disable update-on-save, be aware that backlinks will not update until you manually do =M-x org-roam-db-sync RET=.
 
 ** Setup
 
