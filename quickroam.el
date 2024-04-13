@@ -78,7 +78,7 @@ single string, it will nto work."
 
 (defvar quickroam-cache (make-hash-table :size 4000 :test #'equal)
   "Table of org-roam node titles, with associated data in plists.
-To peek on the contents, try \\[quickroam-debug-show-random-nodes].
+To peek on the contents, try \\[quickroam-peek].
 
 Contrary to what you might expect, we don't use the org-ID as the
 database key because keying on the title instead allows
