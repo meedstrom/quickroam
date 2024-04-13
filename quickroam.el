@@ -17,7 +17,7 @@
 
 ;; Author: Martin Edström <meedstrom91@gmail.com>
 ;; Created: 2024-04-09
-;; Version: 0.6.1-pre
+;; Version: 0.7
 ;; Keywords: outlines, hypermedia
 ;; Package-Requires: ((emacs "29.1") (org-roam "2.2.2") (pcre2el "1.12"))
 ;; URL: https://github.com/meedstrom/quickroam
@@ -36,7 +36,7 @@
 ;;
 ;; Setup:
 ;;
-;;     (add-hook 'org-mode-hook #'quickroam-enable)
+;;     (add-hook 'org-mode-hook #'quickroam-enable-cache)
 ;;
 ;; Requires ripgrep.
 
@@ -193,7 +193,8 @@ usually works and doesn't need to always work anyway."
   "Fast substitute for `org-roam-node-find'."
   (interactive)
   (require 'org-roam)
-  (when (hash-table-empty-p quickroam-cache)
+  (when (or (hash-table-empty-p quickroam-cache)
+            (not quickroam-mode))
     (quickroam-reset))
   (let* ((title (completing-read "Node: " quickroam-cache nil nil nil 'org-roam-node-history))
          (node (gethash title quickroam-cache)))
@@ -212,7 +213,8 @@ usually works and doesn't need to always work anyway."
   "Fast substitute for `org-roam-node-insert'."
   (interactive)
   (require 'org-roam)
-  (when (hash-table-empty-p quickroam-cache)
+  (when (or (hash-table-empty-p quickroam-cache)
+            (not quickroam-mode))
     (quickroam-reset))
   (let* ((beg nil)
          (end nil)
@@ -251,16 +253,26 @@ usually works and doesn't need to always work anyway."
                        :finalize 'insert-link)))))))
 
 ;;;###autoload
-(defun quickroam-enable ()
+(defun quickroam-enable-cache ()
   "Designed for `org-mode-hook'."
   (quickroam-mode)
   (remove-hook 'org-mode-hook #'quickroam-enable))
 
 ;;;###autoload
+(define-obsolete-function-alias 'quickroam-enable #'quickroam-enable-cache
+  "2024-04-13")
+
+;; Uncomment later
+;; (defun quickroam-enable ()
+;;   (warn "Renamed: `quickroam-enable' is now `quickroam-enable-cache', update your initfiles")
+;;   (quickroam-enable-cache))
+
+;;;###autoload
 (define-minor-mode quickroam-mode
   "Instruct on-save hooks and such things to update the cache.
-Updating the cache lets `quickroam-find' and `quickroam-insert'
-know about new files immediately."
+Using a cache lets `quickroam-find' and `quickroam-insert' open
+the minibuffer slightly faster -- a difference on the order of
+going from 100ms to 20ms, but it is optional."
   :group 'org-roam
   :global t
   (require 'org-roam)
