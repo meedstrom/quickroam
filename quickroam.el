@@ -201,8 +201,8 @@ usually works and doesn't need to always work anyway."
         (progn
           (find-file
            (expand-file-name (plist-get node :file) org-roam-directory))
-          (goto-line
-           (plist-get node :line-number)))
+          (goto-char 1)
+          (forward-line (1- (plist-get node :line-number))))
       (org-roam-capture-
        :node (org-roam-node-create :title title)
        :props '(:finalize find-file)))))
@@ -235,7 +235,8 @@ usually works and doesn't need to always work anyway."
               (org-roam-with-file
                   (expand-file-name (plist-get node :file) org-roam-directory)
                   nil
-                (goto-line (plist-get node :line-number))
+                (goto-char 1)
+                (forward-line (1- (plist-get node :line-number)))
                 (setq link-desc (nth 4 (org-heading-components))))))
           (insert (org-link-make-string (concat "id:" id) link-desc))
           (run-hook-with-args 'org-roam-post-node-insert-hook id link-desc))
@@ -260,6 +261,7 @@ usually works and doesn't need to always work anyway."
   "Instruct on-save hooks and such things to update the cache.
 Updating the cache lets `quickroam-find' and `quickroam-insert'
 know about new files immediately."
+  :group 'org-roam
   :global t
   (require 'org-roam)
   (if quickroam-mode
