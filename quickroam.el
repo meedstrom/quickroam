@@ -17,7 +17,7 @@
 
 ;; Author: Martin Edström <meedstrom91@gmail.com>
 ;; Created: 2024-04-09
-;; Version: 0.7
+;; Version: 1.0
 ;; Keywords: outlines, hypermedia
 ;; Package-Requires: ((emacs "29.1") (org-roam "2.2.2") (pcre2el "1.12"))
 ;; URL: https://github.com/meedstrom/quickroam
@@ -38,7 +38,7 @@
 ;;
 ;;     (add-hook 'org-mode-hook #'quickroam-enable-cache)
 ;;
-;; Requires ripgrep.
+;; Requires ripgrep installed on your computer.
 
 ;;; Code:
 
@@ -50,19 +50,20 @@
     "--glob" "!**/logseq/**"  ;; ignore Logseq's backup files
     "--glob" "!**/*.sync-conflict-*") ;; ignore Syncthing dups
   "Extra arguments to ripgrep - useful for filtering paths.
+Read about glob syntax in the Ripgrep guide:
+
+  https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md
 
 Rather than add arguments here, it's probably easier to rely on
 an .ignore or .gitignore file in `org-roam-directory'.
 
 On an exotic system such as Windows, you probably have to edit
-these paths.  Read about glob syntax in the Ripgrep guide:
-
-  https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md
+these paths.
 
 These arguments are NOT passed directly to a shell, so there's no
 need to shell-escape characters.  If you have a filename with a
 space, it's fine (I think).  Do not pass several arguments in a
-single string, it will nto work."
+single string, it will not work."
   :type '(repeat string)
   :group 'org-roam)
 
@@ -91,6 +92,9 @@ Another way to think of it: since this cache is only used for
 same-titled nodes.  If it were used to populate `org-roam-db' or
 `org-id-locations', we'd have a serious problem.")
 
+;; 4-fold perf boost over `shell-command', if you call rg once per file.  But
+;; it's still even faster to find a regexp that lets you call rg only once for
+;; the entire directory.
 (defun quickroam--program-output (program &rest args)
   "Like `shell-command-to-string', but skip the shell intermediary.
 
@@ -144,8 +148,8 @@ hand, you get no shell magic such as globs or envvars."
                           :line-number (string-to-number (cadr file:lnum)))
                  quickroam-cache)))))
 
-;; Today this function looks almost identical to `quickroam-seek-file-level-nodes', but
-;; they may diverge in the future.
+;; Today this function looks almost identical to
+;; `quickroam-seek-file-level-nodes', but they may diverge in the future.
 (defun quickroam-seek-subtree-nodes ()
   "Scan `org-roam-directory' for subtree nodes."
   (let* ((default-directory org-roam-directory)
@@ -202,6 +206,7 @@ usually works and doesn't need to always work anyway."
         (progn
           (find-file
            (expand-file-name (plist-get node :file) org-roam-directory))
+          (widen)
           (goto-char 1)
           (forward-line (1- (plist-get node :line-number))))
       (org-roam-capture-
@@ -211,7 +216,7 @@ usually works and doesn't need to always work anyway."
 ;;;###autoload
 (defun quickroam-insert ()
   "Fast substitute for `org-roam-node-insert'."
-  (interactive)
+  (interactive nil org-mode)
   (require 'org-roam)
   (when (or (hash-table-empty-p quickroam-cache)
             (not quickroam-mode))
@@ -237,6 +242,7 @@ usually works and doesn't need to always work anyway."
               (org-roam-with-file
                   (expand-file-name (plist-get node :file) org-roam-directory)
                   nil
+                (widen)
                 (goto-char 1)
                 (forward-line (1- (plist-get node :line-number)))
                 (setq link-desc (nth 4 (org-heading-components))))))
