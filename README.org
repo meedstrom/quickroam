@@ -38,7 +38,7 @@ Install [[https://github.com/BurntSushi/ripgrep][ripgrep]] on your computer.  Th
 
 ** Future work
 
-(2024-04-23: quickroam has hit version 1.0 and is not expected to change.  I expect no bugs as it is very simple.  Now I dogfood a featureful spin-off: [[https://github.com/meedstrom/org-node][org-node]])
+(2024-04-23: quickroam has hit version 1.0 and is not expected to change.  Now I dogfood a spin-off with more features: [[https://github.com/meedstrom/org-node][org-node]]!)
 
 This package is a proof-of-concept that ripgrep can collect part of the data needed by the org-roam DB.  However, simple regexps cannot collect all that's needed.  Some challenges:
 
