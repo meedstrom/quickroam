@@ -3,10 +3,10 @@
 
 If you're like me, you think [[https://github.com/org-roam/org-roam][org-roam]] has the right idea, but the current implementation is not reliable or fast enough for day-to-day work.
 
-1. The end-user commands take 5 seconds to get the minibuffer ready.
+1. The end-user commands take me 5 seconds to get the minibuffer ready.
    - A [[https://edstrom.dev/czdfr/org-roam-fixes#jxbqt][workaround by memoizing]] works well most of the time, but if I create a new node and immediately want to insert it elsewhere, I have to wait for an idle timer to update the memoization.
 
-2. Very large Org files take 10 seconds to save with =org-roam-db-autosync-mode=.
+2. Very large Org files take me 10 seconds to save with =org-roam-db-autosync-mode=.
    - I can turn the mode off, but then I need to manually run =M-x org-roam-db-sync= every now and then!  Not great when I'm in the zone and writing.
 
 As best I can tell by reading the source code, problems #1 and #2 are totally separate.  Problem #1 /should/ be fixable, but #2 arises from the fact that org-roam is very generalized -- for example, it lets you plug in user-defined functions to exclude or include a node.  That's nice and hackable, but it means that org-roam is forced to use Org functions to "properly" parse every file it scans, incurring all the penalties of doing so.
@@ -35,6 +35,10 @@ Install [[https://github.com/BurntSushi/ripgrep][ripgrep]] on your computer.  Th
 (global-set-key (kbd "<f2> f") #'quickroam-find) ;; or whatever key you use
 (global-set-key (kbd "<f2> i") #'quickroam-insert)
 #+end_src
+
+** Limitations
+
+No =ROAM_ALIASES=, no =ROAM_EXCLUDE=, no =org-roam-node-display-template=, etc.  My attempt at supporting all that is a different package, [[https://github.com/meedstrom/org-node][org-node]].
 
 ** Future work
 
