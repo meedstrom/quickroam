@@ -22,6 +22,10 @@ They don't look up the org-roam DB at all, just rely on ripgrep.  They're fast, 
 
 If you do the #2 fix, be aware that backlinks won't update until you run =M-x org-roam-db-sync RET=.
 
+** Limitations
+
+This is very fast but very simplistic, you get no =ROAM_ALIASES=, no =ROAM_EXCLUDE=, no =org-roam-node-display-template=, etc!  My attempt at supporting all that resulted in a different package, [[https://github.com/meedstrom/org-node][org-node]].
+
 ** Setup
 
 Install [[https://github.com/BurntSushi/ripgrep][ripgrep]] on your computer.  Then add to Emacs initfiles something like this, assuming you install packages with [[https://github.com/radian-software/straight.el][straight.el]]:
@@ -35,10 +39,6 @@ Install [[https://github.com/BurntSushi/ripgrep][ripgrep]] on your computer.  Th
 (global-set-key (kbd "<f2> f") #'quickroam-find) ;; or whatever key you use
 (global-set-key (kbd "<f2> i") #'quickroam-insert)
 #+end_src
-
-** Limitations
-
-No =ROAM_ALIASES=, no =ROAM_EXCLUDE=, no =org-roam-node-display-template=, etc.  My attempt at supporting all that is a different package, [[https://github.com/meedstrom/org-node][org-node]].
 
 ** Future work
 
