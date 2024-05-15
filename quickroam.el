@@ -17,9 +17,9 @@
 
 ;; Author: Martin Edström <meedstrom91@gmail.com>
 ;; Created: 2024-04-09
-;; Version: 1.0.1
+;; Version: 1.1
 ;; Keywords: outlines, hypermedia
-;; Package-Requires: ((emacs "29.1") (org-roam "2.2.2") (pcre2el "1.12"))
+;; Package-Requires: ((emacs "28.1") (org-roam "2.2.2") (pcre2el "1.12"))
 ;; URL: https://github.com/meedstrom/quickroam
 
 ;; This file is not part of GNU Emacs.
