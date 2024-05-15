@@ -137,9 +137,9 @@ hand, you get no shell magic such as globs or envvars."
                              "--replace" "	$1	$2"
                              ,@quickroam-extra-rg-args
                              ,quickroam-file-level-re))))
-    (dolist (line (string-split rg-result "\n" t))
-      (let* ((groups (string-split line "\t"))
-             (file:lnum (string-split (pop groups) ":"))
+    (dolist (line (split-string rg-result "\n" t))
+      (let* ((groups (split-string line "\t"))
+             (file:lnum (split-string (pop groups) ":"))
              ($1 (pop groups))
              ($2 (pop groups)))
         (puthash $2 (list :title $2
@@ -161,9 +161,9 @@ hand, you get no shell magic such as globs or envvars."
                              "--replace" "	$1	$2"
                              ,@quickroam-extra-rg-args
                              ,quickroam-subtree-re))))
-    (dolist (line (string-split rg-result "\n" t))
-      (let* ((groups (string-split line "\t"))
-             (file:lnum (string-split (pop groups) ":"))
+    (dolist (line (split-string rg-result "\n" t))
+      (let* ((groups (split-string line "\t"))
+             (file:lnum (split-string (pop groups) ":"))
              ($1 (pop groups))
              ($2 (pop groups)))
         (puthash $1 (list :title $1
