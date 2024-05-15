@@ -17,7 +17,7 @@
 
 ;; Author: Martin Edström <meedstrom91@gmail.com>
 ;; Created: 2024-04-09
-;; Version: 1.0
+;; Version: 1.0.1
 ;; Keywords: outlines, hypermedia
 ;; Package-Requires: ((emacs "29.1") (org-roam "2.2.2") (pcre2el "1.12"))
 ;; URL: https://github.com/meedstrom/quickroam
@@ -242,10 +242,12 @@ usually works and doesn't need to always work anyway."
               (org-roam-with-file
                   (expand-file-name (plist-get node :file) org-roam-directory)
                   nil
-                (widen)
-                (goto-char 1)
-                (forward-line (1- (plist-get node :line-number)))
-                (setq link-desc (nth 4 (org-heading-components))))))
+                (save-excursion
+                  (save-restriction
+                    (widen)
+                    (goto-char 1)
+                    (forward-line (1- (plist-get node :line-number)))
+                    (setq link-desc (nth 4 (org-heading-components))))))))
           (insert (org-link-make-string (concat "id:" id) link-desc))
           (run-hook-with-args 'org-roam-post-node-insert-hook id link-desc))
       (atomic-change-group
