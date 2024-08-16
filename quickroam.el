@@ -17,12 +17,10 @@
 
 ;; Author: Martin Edström <meedstrom91@gmail.com>
 ;; Created: 2024-04-09
-;; Version: 1.1
-;; Keywords: outlines, hypermedia
+;; Version: 1.2
+;; Keywords: org, hypermedia
 ;; Package-Requires: ((emacs "28.1") (org-roam "2.2.2") (pcre2el "1.12"))
 ;; URL: https://github.com/meedstrom/quickroam
-
-;; This file is not part of GNU Emacs.
 
 ;;; Commentary:
 
@@ -36,7 +34,7 @@
 ;;
 ;; Setup:
 ;;
-;;     (add-hook 'org-mode-hook #'quickroam-enable-cache)
+;;     (with-eval-after-load 'org (quickroam-mode))
 ;;
 ;; Requires ripgrep installed on your computer.
 
@@ -44,6 +42,7 @@
 
 (require 'subr-x)
 (require 'pcre2el)
+(require 'org-roam)
 
 (defcustom quickroam-extra-rg-args
   '("--glob" "**/*.org"
@@ -70,13 +69,6 @@ single string, it will not work."
 
 ;;; Plumbing
 
-(defun quickroam-peek ()
-  "For debugging: peek on some rows of `quickroam-cache'."
-  (interactive)
-  (let ((rows (hash-table-values quickroam-cache)))
-    (dotimes (_ 5)
-      (print (nth (random (length rows)) rows)))))
-
 (defvar quickroam-cache (make-hash-table :size 4000 :test #'equal)
   "Table of org-roam node titles, with associated data in plists.
 To peek on the contents, try \\[quickroam-peek].
@@ -91,6 +83,13 @@ Another way to think of it: since this cache is only used for
 `quickroam-find'/`quickroam-insert', it is fine to drop
 same-titled nodes.  If it were used to populate `org-roam-db' or
 `org-id-locations', we'd have a serious problem.")
+
+(defun quickroam-peek ()
+  "For debugging: peek on some rows of `quickroam-cache'."
+  (interactive)
+  (let ((rows (hash-table-values quickroam-cache)))
+    (dotimes (_ 5)
+      (print (nth (random (length rows)) rows)))))
 
 ;; 4-fold perf boost over `shell-command', if you call rg once per file.  But
 ;; it's still even faster to find a regexp that lets you call rg only once for
@@ -148,8 +147,11 @@ hand, you get no shell magic such as globs or envvars."
                           :line-number (string-to-number (cadr file:lnum)))
                  quickroam-cache)))))
 
-;; Today this function looks almost identical to
-;; `quickroam-seek-file-level-nodes', but they may diverge in the future.
+;; Today this function looks almost identical to the above
+;; `quickroam-seek-file-level-nodes', but if you extend them to do more,
+;; they're very likely to diverge.  This has actually happened!  The early
+;; commits in org-node show an advanced version of quickroam:
+;; https://github.com/meedstrom/org-node/blob/c2d43155d9fd4e96a97df28d0411eb95ce2bfa1a/org-node-cache.el
 (defun quickroam-seek-subtree-nodes ()
   "Scan `org-roam-directory' for subtree nodes."
   (let* ((default-directory org-roam-directory)
@@ -261,19 +263,12 @@ usually works and doesn't need to always work anyway."
                        :finalize 'insert-link)))))))
 
 ;;;###autoload
-(defun quickroam-enable-cache ()
-  "Designed for `org-mode-hook'."
-  (quickroam-mode)
-  (remove-hook 'org-mode-hook #'quickroam-enable))
+(define-obsolete-function-alias #'quickroam-enable-cache #'quickroam-mode
+  "2024-08-16")
 
 ;;;###autoload
-(define-obsolete-function-alias 'quickroam-enable #'quickroam-enable-cache
+(define-obsolete-function-alias #'quickroam-enable #'quickroam-mode
   "2024-04-13")
-
-;; Uncomment later
-;; (defun quickroam-enable ()
-;;   (warn "Renamed: `quickroam-enable' is now `quickroam-enable-cache', update your initfiles")
-;;   (quickroam-enable-cache))
 
 ;;;###autoload
 (define-minor-mode quickroam-mode
@@ -283,7 +278,6 @@ the minibuffer slightly faster -- a difference on the order of
 going from 100ms to 20ms, but it is optional."
   :group 'org-roam
   :global t
-  (require 'org-roam)
   (if quickroam-mode
       (progn
         (add-hook 'after-save-hook #'quickroam-reset-soon)
@@ -294,4 +288,5 @@ going from 100ms to 20ms, but it is optional."
     (advice-remove #'rename-file #'quickroam-reset-soon)))
 
 (provide 'quickroam)
+
 ;;; quickroam.el ends here
